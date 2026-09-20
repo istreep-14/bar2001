@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar2.000 Live</title>
+<link rel="preload" href="/fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/poppins-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <h1 class="brand">Bar2.000</h1>
+    <nav class="views" aria-label="Views">
+      <button type="button" data-view="shifts">Shifts</button>
+      <button type="button" data-view="employees">Employees</button>
+    </nav>
+    <span id="status" class="status"><i class="dot"></i><span id="statusText">Connecting…</span></span>
+    <span id="lastEvent" class="muted"></span>
+    <div id="counts" class="counts" aria-label="Row counts"></div>
+  </header>
+
+  <form id="auth" class="auth" hidden>
+    <span>This server needs an API token:</span>
+    <input id="token" type="password" autocomplete="off" placeholder="API_TOKEN" aria-label="API token">
+    <button type="submit" class="btn btn-primary">Connect</button>
+  </form>
+
+  <div id="shiftsView" class="workbench">
+    <nav id="sidePanel" class="panel leftnav" aria-label="Sections">
+      <div class="navhead">
+        <h2 id="navTitle">Shifts</h2>
+        <button type="button" id="closeForm" class="linkbtn" data-only="edit" aria-label="Close form" hidden>✕ Close</button>
+      </div>
+      <div class="navgroups">
+      <div class="navgroup">
+        <h3 class="navlabel">Browse</h3>
+        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Browse">
+          <button type="button" role="tab" id="tabShifts" data-tab="shifts" aria-controls="paneShifts" hidden><span class="tabname">Shifts</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabFeed" data-tab="feed" aria-controls="paneFeed" hidden><span class="tabname">Live feed</span><span class="tabsum"></span></button>
+        </div>
+      </div>
+      <div class="navgroup">
+        <h3 class="navlabel">Info</h3>
+        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Info">
+          <button type="button" role="tab" id="tabDate" data-tab="date" aria-controls="paneDate" hidden><span class="tabname">Date</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabTime" data-tab="time" aria-controls="paneTime" hidden><span class="tabname">Time</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabType" data-tab="type" aria-controls="paneType" hidden><span class="tabname">Type</span><span class="tabsum"></span></button>
+        </div>
+      </div>
+      <div class="navgroup">
+        <h3 class="navlabel">Income</h3>
+        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Income">
+          <button type="button" role="tab" id="tabTips" data-tab="tips" aria-controls="paneTips" hidden><span class="tabname">Tips</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabWage" data-tab="wage" aria-controls="paneWage" hidden><span class="tabname">Wage</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabMisc" data-tab="misc" aria-controls="paneMisc" hidden><span class="tabname">Misc</span><span class="tabsum"></span></button>
+        </div>
+      </div>
+      <div class="navgroup">
+        <h3 class="navlabel">Details</h3>
+        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Details">
+          <button type="button" role="tab" id="tabLocation" data-tab="location" aria-controls="paneLocation" hidden><span class="tabname">Location</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabCrew" data-tab="crew" aria-controls="paneCrew" hidden><span class="tabname">Crew</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabParty" data-tab="party" aria-controls="paneParty" hidden><span class="tabname">Party</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabNotes" data-tab="notes" aria-controls="paneNotes" hidden><span class="tabname">Notes</span><span class="tabsum"></span></button>
+        </div>
+      </div>
+      <div class="navgroup">
+        <h3 class="navlabel">Lists</h3>
+        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Lists">
+          <button type="button" role="tab" id="tabListLocations" data-tab="listLocations" aria-controls="paneListLocations" hidden><span class="tabname">Locations</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabListTypes" data-tab="listTypes" aria-controls="paneListTypes" hidden><span class="tabname">Misc types</span><span class="tabsum"></span></button>
+          <button type="button" role="tab" id="tabListRates" data-tab="listRates" aria-controls="paneListRates" hidden><span class="tabname">Wage rates</span><span class="tabsum"></span></button>
+        </div>
+      </div>
+      </div>
+      <div class="navfoot" data-only="edit" hidden>
+        <button type="submit" form="shiftForm" id="saveShift" class="btn btn-primary">Save shift</button>
+        <button type="button" id="cancelForm" class="btn">Cancel</button>
+        <button type="button" id="deleteShift" class="btn btn-danger" hidden>Delete</button>
+      </div>
+    </nav>
+    <div class="panes">
+    <section id="paneShifts" class="panel" role="tabpanel" data-tab="shifts" aria-labelledby="tabShifts">
+      <div class="panel-head">
+        <h2>Shifts</h2>
+        <div class="toolbar">
+          <label class="check"><input id="showDeleted" type="checkbox"> Show deleted</label>
+          <button id="newShift" class="btn btn-primary" type="button">+ New shift</button>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Date</th><th>Time worked</th><th class="num">Tips</th><th class="num">Wage</th><th class="num">Other</th><th class="num">Total income</th><th class="num">Bartenders</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="tablenote muted">Amounts are rounded to whole dollars; hover for cents. Under each is what it comes to per hour worked. Hours worked are the shift's length minus its breaks. Wage is estimated from your hourly rate, and total income includes it. Bartenders is you plus the employees on the shift who are bartenders, with their combined hours and the tips made by everyone on it.</p>
+      <div id="empty" class="empty" hidden>No shifts yet. Add your first with <b>+ New shift</b>.</div>
+      <button id="more" class="more" type="button" hidden>Load older shifts</button>
+    </section>
+    <section id="paneFeed" class="panel pane" role="tabpanel" data-tab="feed" aria-labelledby="tabFeed" hidden>
+        <div class="panel-head"><h2>Live feed</h2></div>
+        <div class="pane-body flush">
+        <ol id="feed" class="feed" role="log" aria-live="polite"></ol>
+        <div id="feedEmpty" class="empty">Waiting for changes…</div>
+        </div>
+      </section>
+    <form id="shiftForm" novalidate data-only="edit" hidden>
+      <div id="formBanner" class="banner" role="status" hidden></div>
+      <div id="formErrors" class="errors" role="alert" tabindex="-1" hidden></div>
+      <section id="paneDate" class="panel pane" role="tabpanel" data-tab="date" aria-labelledby="tabDate" hidden>
+        <div class="panel-head"><h2>Date</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div class="datebar">
+              <input id="fDate" type="date" aria-label="Shift date">
+              <button type="button" class="pill" data-days="0">Today</button>
+              <button type="button" class="pill" data-days="-1">Yesterday</button>
+            </div>
+            <div class="muted">The date the shift belongs to: a 2am close belongs to the night before.</div>
+          </section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneTime" class="panel pane" role="tabpanel" data-tab="time" aria-labelledby="tabTime" hidden>
+        <div class="panel-head"><h2>Time</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div class="timepair">
+              <label class="field">Start <input id="fStart" type="time"></label>
+              <span class="to" aria-hidden="true">→</span>
+              <label class="field">End <input id="fEnd" type="time"></label>
+            </div>
+            <div id="nextDay" class="muted" hidden>Ends the next day.</div>
+          </section>
+          <section class="fsec">
+            <div class="subsec">
+              <span class="sublabel">Breaks</span>
+              <div id="breakHost"></div>
+            </div>
+            <div class="muted">Breaks are unpaid. They have to fall inside the shift.</div>
+          </section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneType" class="panel pane" role="tabpanel" data-tab="type" aria-labelledby="tabType" hidden>
+        <div class="panel-head"><h2>Type</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div id="typeSeg" class="seg" role="radiogroup" aria-label="Shift type">
+              <label><input type="radio" name="shiftType" value="day">Day</label>
+              <label><input type="radio" name="shiftType" value="night">Night</label>
+              <label><input type="radio" name="shiftType" value="double">Double</label>
+            </div>
+            <div class="muted">Required. On a Double, each income entry says whether it was for the day, the night, or combined.</div>
+          </section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneTips" class="panel pane" role="tabpanel" data-tab="tips" aria-labelledby="tabTips" hidden>
+        <div class="panel-head"><h2>Tips</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div id="tipRows" class="rows"></div>
+            <div><button type="button" id="addTips" class="linkbtn">+ Add tips</button></div>
+            <div id="combinedHint" class="muted" hidden>Not sure how it split? Choose “Combined” for that entry.</div>
+          </section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneWage" class="panel pane" role="tabpanel" data-tab="wage" aria-labelledby="tabWage" hidden>
+        <div class="panel-head"><h2>Wage</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div id="wageLine" class="derived" aria-live="polite"></div>
+            <div class="muted">Worked out from your hours and the rate that applies on the shift's date; never entered.</div>
+          </section>
+          <section class="fsec" data-list="wage_rates" data-title="Wage rates"></section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneMisc" class="panel pane" role="tabpanel" data-tab="misc" aria-labelledby="tabMisc" hidden>
+        <div class="panel-head"><h2>Misc</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div id="otherRows" class="rows"></div>
+            <div><button type="button" id="addOther" class="linkbtn">+ Add misc</button></div>
+            <div id="otherHint" class="muted" hidden>Nothing here yet. Add a type below (Cash, Venmo, Paycheck…), then log it here.</div>
+          </section>
+          <section class="fsec" data-list="income_categories" data-title="Misc types"></section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneLocation" class="panel pane" role="tabpanel" data-tab="location" aria-labelledby="tabLocation" hidden>
+        <div class="panel-head"><h2>Location</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <div id="locationPills" class="pills" role="group" aria-label="Locations"></div>
+            <input id="fLocation" list="locationList" maxlength="100" autocomplete="off" placeholder="Choose above, or type a place" aria-label="Location">
+            <datalist id="locationList"></datalist>
+          </section>
+          <section class="fsec" data-list="locations" data-title="Your locations"></section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneCrew" class="panel pane" role="tabpanel" data-tab="crew" aria-labelledby="tabCrew" hidden>
+        <div class="panel-head"><h2>Employees on this shift</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <h3>Who worked</h3>
+            <div id="staffPills" class="pills" role="group" aria-label="Employees"></div>
+            <div id="staffEmpty" class="muted" hidden>No employees yet. Type a name below to add one.</div>
+            <div class="addrow">
+              <input id="fEmployee" list="employeeList" maxlength="100" autocomplete="off" placeholder="Add someone by name" aria-label="Add an employee by name">
+              <button type="button" id="addEmployee" class="btn">Add</button>
+            </div>
+            <datalist id="employeeList"></datalist>
+          </section>
+          <section class="fsec crewgrid" aria-label="Crew on this shift">
+            <div class="crewlist">
+              <div id="staffRows" class="rows"></div>
+              <div id="staffTotals" class="derived" aria-live="polite" hidden></div>
+            </div>
+            <div class="crewside">
+              <div id="crewEmpty" class="muted">No one is on this shift yet. Pick or add someone to set their times, tips and role here.</div>
+              <div id="crewDetails"></div>
+              <datalist id="crewRoleList"></datalist>
+            </div>
+          </section>
+          <div class="muted crewnote">Pick a person to set their start, end, tips and role. Their times start as yours. Times and tips are optional.</div>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneParty" class="panel pane" role="tabpanel" data-tab="party" aria-labelledby="tabParty" hidden>
+        <div class="panel-head"><h2>Party</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <label class="check"><input type="checkbox" id="fParty"> A party happened during this shift</label>
+            <div class="muted">Every detail is optional. The yes or no is what shows up when you compare shifts.</div>
+          </section>
+          <div id="partyHost"></div>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+      <section id="paneNotes" class="panel pane" role="tabpanel" data-tab="notes" aria-labelledby="tabNotes" hidden>
+        <div class="panel-head"><h2>Notes</h2></div>
+        <div class="pane-body">
+          <section class="fsec">
+            <label class="field">Notes <textarea id="fNotes" rows="3"></textarea></label>
+            <label class="field">Tags <input id="fTags" autocomplete="off" placeholder="busy, holiday (comma separated)"></label>
+            <div id="formHint" class="muted"></div>
+          </section>
+          <div class="panefoot"><button type="button" class="btn" data-step="-1">← Back</button><span class="spacer"></span><button type="button" class="btn" data-step="1">Next →</button></div>
+        </div>
+      </section>
+    </form>
+    <section id="paneListLocations" class="panel pane" role="tabpanel" data-tab="listLocations" aria-labelledby="tabListLocations" hidden>
+        <div class="panel-head"><h2>Locations</h2></div>
+        <div class="pane-body">
+          <section class="fsec" data-list="locations"></section>
+        </div>
+      </section>
+    <section id="paneListTypes" class="panel pane" role="tabpanel" data-tab="listTypes" aria-labelledby="tabListTypes" hidden>
+        <div class="panel-head"><h2>Misc types</h2></div>
+        <div class="pane-body">
+          <section class="fsec" data-list="income_categories"></section>
+        </div>
+      </section>
+    <section id="paneListRates" class="panel pane" role="tabpanel" data-tab="listRates" aria-labelledby="tabListRates" hidden>
+        <div class="panel-head"><h2>Wage rates</h2></div>
+        <div class="pane-body">
+          <section class="fsec" data-list="wage_rates"></section>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="employeesPage" hidden>
+    <div id="employeesView" class="workspace">
+      <section class="panel" aria-labelledby="rosterTitle">
+        <div class="panel-head"><h2 id="rosterTitle">Employees</h2></div>
+        <div class="addbar">
+          <div class="addrow addrow-employee">
+            <input id="newEmployeeName" maxlength="100" autocomplete="off" placeholder="Name" aria-label="New employee name">
+            <input id="newEmployeeRole" list="roleList" maxlength="50" autocomplete="off" placeholder="Role" aria-label="New employee role (optional)">
+            <button type="button" id="addEmployeeBtn" class="btn">Add</button>
+          </div>
+          <div id="rosterMsg" class="lmsg" role="status"></div>
+        </div>
+        <div id="rosterScroll" class="scroll">
+          <table class="roster">
+            <caption class="sr">Employees grouped by role, with what each has worked so far</caption>
+            <thead><tr><th>Name</th><th class="num">Shifts</th><th class="num">Hours</th><th class="num">Tips</th><th class="num hide-sm">Last worked</th></tr></thead>
+            <tbody id="rosterRows"></tbody>
+          </table>
+        </div>
+        <div id="employeesEmpty" class="empty" hidden>No employees yet. Add the first above, or type a name in a shift.</div>
+        <p class="tablenote muted">Grouped by role. Shifts, hours and tips are what each person has on the shifts you logged: hours are their own start to end, so a shift without their times adds a shift but no hours. Role decides who counts as a bartender in a shift's totals: blank or Bartender does; anything else (Barback, Server…) doesn't, though their tips still count towards the shift.</p>
+        <datalist id="roleList"></datalist>
+      </section>
+
+      <aside id="employeeSide" class="panel side" aria-label="Selected employee">
+        <div id="sideEmpty" class="empty">Pick someone in the table to see their activity and edit their details.</div>
+        <div id="sideDetail" hidden>
+          <div class="panel-head"><h2 id="sideName"></h2></div>
+          <section class="tier" aria-labelledby="profileTitle">
+            <h3 id="profileTitle">Profile</h3>
+            <label class="field">Name<input id="pName" maxlength="100" autocomplete="off"></label>
+            <label class="field">Role<input id="pRole" list="roleList" maxlength="50" autocomplete="off" placeholder="Bartender"></label>
+            <p id="roleHint" class="muted"></p>
+            <label class="field">Notes<textarea id="pNotes" maxlength="2000" placeholder="Anything to remember"></textarea></label>
+            <div id="sideMsg" class="lmsg" role="status"></div>
+          </section>
+          <section class="tier tier-result" aria-labelledby="activityTitle">
+            <h3 id="activityTitle">Activity</h3>
+            <dl id="sideStats" class="stats"></dl>
+            <h4 class="sublabel">Latest shifts</h4>
+            <ol id="sideShifts" class="rshifts"></ol>
+            <div id="sideShiftsEmpty" class="muted" hidden>No shifts with them yet.</div>
+          </section>
+          <div class="tier tier-foot">
+            <button type="button" id="removeEmployee" class="btn btn-danger"></button>
+            <p class="muted">Someone who worked a shift is only archived: past shifts keep their name.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script type="module">
+import { createShiftForm } from '/form.js';
+import { createListsManager } from '/lists.js';
+import { createEmployeesManager } from '/employees.js';
+import { createSidePanel } from '/side.js';
+import { deriveShift, hoursText } from '/pay.js';
+const $ = (id) => document.getElementById(id);
+const state = {
+  locations: new Map(), employees: new Map(), incomeCategories: new Map(), wageRates: new Map(), shifts: new Map(),   // list entries include archived ones, so old shifts still resolve
+  purged: new Set(),          // ids purged this session, so a stale snapshot can't resurrect them
+  cursor: null, feed: [], seen: new Set(), expanded: new Set(), flash: new Map(),
+  counts: null, instance: null, lastEventAt: null, armed: null,   // armed: the row whose Delete is waiting for a second click
+};
+
+// ---- helpers -------------------------------------------------------------------------
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === 'class') el.className = v; else if (v !== false && v != null) el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid);   // strings become text nodes, never HTML
+  return el;
+}
+const usd = (cents) => (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+// The table shows whole dollars (rounded); hovering shows the cents.
+const usd0 = (cents) => (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+// Times are wall-clock 'YYYY-MM-DDTHH:MM' strings: format them without any timezone handling.
+function fmtTime(dt) {
+  const [hh, mm] = dt.slice(11, 16).split(':').map(Number);
+  return (hh % 12 || 12) + ':' + String(mm).padStart(2, '0') + ' ' + (hh < 12 ? 'AM' : 'PM');
+}
+function breakText(b) {
+  return 'break ' + (b.start_at ? fmtTime(b.start_at) + '–' + fmtTime(b.end_at) : b.minutes + ' min');
+}
+// A work date as compact text: "Sat, Sep 19" (with a ’25 only when it isn't this year). Built from the date's own
+// parts, never through the local timezone.
+const WEEKDAY = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'UTC' });
+const MONTH = new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' });
+function dateLabel(workDate) {
+  const [y, m, d] = workDate.split('-').map(Number);
+  const at = new Date(Date.UTC(y, m - 1, d));
+  return `${WEEKDAY.format(at)}, ${MONTH.format(at)} ${d}` + (y === new Date().getFullYear() ? '' : ' ’' + String(y).slice(2));
+}
+
+// Small line icons, built with DOM calls (the page never assembles markup from strings).
+const ICONS = {
+  edit: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'],
+  raw: ['M16 18l6-6-6-6', 'M8 6l-6 6 6 6'],
+  trash: ['M3 6h18', 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2', 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', 'M10 11v6', 'M14 11v6'],
+};
+function icon(name) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) svg.setAttribute(k, v);
+  for (const d of ICONS[name]) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    svg.append(path);
+  }
+  return svg;
+}
+
+// ---- auth + api ----------------------------------------------------------------------
+function getToken() { try { return localStorage.getItem('bar2000.token') || ''; } catch { return ''; } }
+function setToken(t) { try { localStorage.setItem('bar2000.token', t); } catch { /* private mode: token lasts until reload */ } state.tokenMem = t; }
+const authHeaders = () => { const t = state.tokenMem ?? getToken(); return t ? { authorization: 'Bearer ' + t } : {}; };
+class AuthError extends Error {}
+class ApiError extends Error {
+  constructor(status, problems) { super(problems.join('; ') || 'HTTP ' + status); this.status = status; this.problems = problems; }
+}
+async function request(method, path, body) {
+  const res = await fetch('/api/v1' + path, {
+    method,
+    headers: { ...authHeaders(), ...(body !== undefined && { 'content-type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) throw new AuthError();
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new ApiError(res.status, json?.problems ?? []);
+  return json;
+}
+const api = (path) => request('GET', path);
+
+// ---- state updates -------------------------------------------------------------------
+function upsertShift(shift, { flash = false } = {}) {
+  if (state.purged.has(shift.id)) return;
+  const have = state.shifts.get(shift.id);
+  if (have && have.updated_at > shift.updated_at) return;          // ignore stale copies
+  state.shifts.set(shift.id, shift);
+  if (flash) state.flash.set(shift.id, Date.now());
+  form.noteChanged(shift.id, shift);
+}
+
+const LIST_ENTITIES = { location: 'locations', employee: 'employees', income_category: 'incomeCategories', wage_rate: 'wageRates' };
+function applyEvent(e, { replay = false } = {}) {
+  const key = state.instance + ':' + e.seq;
+  if (state.seen.has(key)) return;
+  state.seen.add(key);
+  state.feed.unshift({ ...e, replay });
+  if (state.feed.length > 200) state.feed.pop();
+  state.lastEventAt = e.at;
+
+  if (e.entity === 'shift') {
+    if (e.op === 'purged') { state.shifts.delete(e.id); state.purged.add(e.id); form.noteChanged(e.id, null); }
+    else if (e.data) upsertShift(e.data, { flash: !replay });
+    employeesView.shiftsChanged();
+  } else if (e.entity in LIST_ENTITIES) {
+    const map = state[LIST_ENTITIES[e.entity]];
+    if (e.op === 'deleted') map.delete(e.id); else if (e.data) map.set(e.id, e.data);
+    form.listsChanged();
+    lists.changed();
+    employeesView.changed();
+  }
+  if (e.entity === 'db') { scheduleSnapshot(); employeesView.shiftsChanged(); }
+  if (!replay) { scheduleStats(); }
+}
+
+let statsTimer = null, snapTimer = null;
+function scheduleStats() { clearTimeout(statsTimer); statsTimer = setTimeout(refreshStats, 250); }
+function scheduleSnapshot() { clearTimeout(snapTimer); snapTimer = setTimeout(() => snapshot().catch(onError), 400); }
+
+async function refreshStats() {
+  try { state.counts = (await api('/stats')).counts; renderCounts(); } catch (err) { onError(err); }
+}
+
+async function snapshot() {
+  // Server clock, read before the page: anything updated after this can't be missing from the
+  // page by accident, so only rows older than it are candidates for "gone from the server".
+  const { now: cutoff } = await api('/stats');
+  const [locations, employees, categories, rates, page, stats] = await Promise.all([
+    api('/locations?include_archived=1'), api('/employees?include_archived=1'), api('/income-categories?include_archived=1'), api('/wage-rates'),
+    api('/shifts?limit=100&include_deleted=1'), api('/stats'),
+  ]);
+  state.locations = new Map(locations.locations.map((x) => [x.id, x]));
+  state.employees = new Map(employees.employees.map((x) => [x.id, x]));
+  state.incomeCategories = new Map(categories.income_categories.map((x) => [x.id, x]));
+  state.wageRates = new Map(rates.wage_rates.map((x) => [x.id, x]));
+  form.listsChanged();
+  lists.changed();
+  employeesView.changed();
+  employeesView.shiftsChanged();
+  const fresh = new Set(page.shifts.map((s) => s.id));
+  for (const s of page.shifts) upsertShift(s);
+  const floor = page.next_cursor ? page.shifts.at(-1).start_at : '';   // the window this page covers
+  for (const [id, s] of state.shifts) {
+    if (!fresh.has(id) && s.start_at >= floor && s.updated_at < cutoff) state.shifts.delete(id);
+  }
+  state.cursor = page.next_cursor;
+  state.counts = stats.counts;
+  renderAll();
+}
+
+async function loadMore() {
+  if (!state.cursor) return;
+  const page = await api('/shifts?limit=100&include_deleted=1&cursor=' + encodeURIComponent(state.cursor));
+  for (const s of page.shifts) upsertShift(s);
+  state.cursor = page.next_cursor;
+  renderShifts();
+}
+
+// ---- rendering -----------------------------------------------------------------------
+function renderCounts() {
+  const c = state.counts; if (!c) return;
+  const items = [['shifts', c.shifts], ['deleted', c.shifts_deleted], ['breaks', c.shift_breaks], ['income', c.money_entries], ['tags', c.shift_tags],
+    ['locations', c.locations], ['employees', c.employees], ['parties', c.parties], ['wage rates', c.wage_rates]];
+  $('counts').replaceChildren(...items.map(([label, n]) => h('span', { class: 'count' }, label, h('b', null, String(n)))));
+}
+
+const locationName = (shift) => (shift.location_id && state.locations.get(shift.location_id)?.name) || '';
+const employeeName = (id) => state.employees.get(id)?.name ?? 'Removed employee';
+
+const isTips = (m) => state.incomeCategories.get(m.category_id)?.system === true;
+const incomeName = (m) => state.incomeCategories.get(m.category_id)?.name ?? 'Income';
+const roleOf = (id) => state.employees.get(id)?.role ?? null;
+
+// One money cell: the amount in whole dollars, and what it comes to per hour worked underneath. Hovering gives the
+// exact figures. Nothing entered shows a dash.
+function amountCell(label, cents, perHour, { note = '' } = {}) {
+  const has = cents > 0;
+  const exact = usd(cents) + (perHour === null ? '' : ' · ' + usd(perHour) + '/hr');
+  return h('td', { class: 'num', 'data-label': label, title: has ? exact + (note ? '\n' + note : '') : null },
+    has ? h('div', { class: 'amt' }, usd0(cents)) : h('span', { class: 'muted' }, '—'),
+    has ? h('div', { class: 'sub' }, perHour === null ? '—' : usd0(perHour) + '/hr') : null);
+}
+
+function iconButton(act, name, label, extra = {}) {
+  return h('button', { type: 'button', class: 'icon-btn' + (extra.class ? ' ' + extra.class : ''), 'data-act': act, title: label, 'aria-label': label, ...extra.attrs }, extra.text ?? icon(name));
+}
+
+function shiftRow(s) {
+  const open = state.expanded.has(s.id);
+  const flashing = Date.now() - (state.flash.get(s.id) || 0) < 1700;
+  const armed = state.armed === s.id;
+  // Everything on this row is worked out from the shift, the employees and your wage history each time it is drawn, so
+  // changing a rate or a role re-computes every row at once (the server derives the same numbers, with the same code,
+  // for API clients).
+  const d = deriveShift(s, [...state.wageRates.values()], roleOf);
+  const other = s.money_entries.filter((m) => !isTips(m));
+  const names = s.employees.map((e) => employeeName(e.employee_id));
+  const partyText = s.parties.map((p) => ['Party', p.name, p.guests ? p.guests + ' guests' : ''].filter(Boolean).join(' · ')).join('; ');
+  const where = [locationName(s), names.length ? 'with ' + names.join(', ') : '', partyText, s.tags.join(', '), s.notes].filter(Boolean);
+  const breaksOff = s.breaks.length ? ` (${s.breaks.length === 1 ? 'a break' : s.breaks.length + ' breaks'} not counted)` : '';
+  const staffNote = s.employees.length
+    ? [`${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'} including you, ${hoursText(d.bartender_minutes)} worked between them`,
+      `Tips made by everyone on the shift: ${usd(d.staff_tips_cents)}` + (d.staff_tips_per_bartender_hour_cents === null ? '' : ` (${usd(d.staff_tips_per_bartender_hour_cents)} per bartender hour)`),
+      ...s.employees.map((e) => `${employeeName(e.employee_id)}${roleOf(e.employee_id) ? ' (' + roleOf(e.employee_id) + ')' : ''}: `
+        + (e.start_at ? hoursText(Math.round((Date.parse(e.end_at + ':00Z') - Date.parse(e.start_at + ':00Z')) / 60000)) : 'no times')
+        + (e.tips_cents != null ? ', tips ' + usd(e.tips_cents) : ''))].join('\n')
+    : '';
+  const tr = h('tr', { class: 'shift' + (s.deleted_at ? ' deleted' : '') + (flashing ? ' flash' : ''), 'data-id': s.id },
+    h('td', { class: 'when', title: where.join(' · ') || null },
+      h('div', { class: 'day' }, dateLabel(s.work_date)),
+      h('div', { class: 'sub' },
+        h('span', { class: 'badge badge-' + s.shift_type }, s.shift_type),
+        d.has_party ? h('span', { class: 'badge badge-party', title: partyText }, 'Party') : null,
+        locationName(s) ? h('span', { class: 'place' }, locationName(s)) : null)),
+    // hours worked lead; when the shift ran is the detail underneath
+    h('td', { class: 'clock', title: (d.paid_minutes / 60).toFixed(2) + ' hours worked' + breaksOff },
+      h('div', { class: 'range' }, hoursText(d.paid_minutes)),
+      h('div', { class: 'sub' }, fmtTime(s.start_at) + ' → ' + fmtTime(s.end_at))),
+    amountCell('Tips', d.tips_cents, d.tips_per_hour_cents),
+    d.estimated_wage_cents === null
+      ? h('td', { class: 'num', 'data-label': 'Wage' }, h('span', { class: 'muted' }, 'No rate set'))
+      : amountCell('Wage', d.estimated_wage_cents, d.wage_rate_cents, { note: hoursText(d.paid_minutes) + ' × ' + usd(d.wage_rate_cents) + '/hr' }),
+    amountCell('Other', d.other_income_cents, d.other_per_hour_cents, { note: other.map((m) => incomeName(m) + ' ' + usd(m.value_cents)).join(' · ') }),
+    amountCell('Total', d.total_income_cents, d.total_per_hour_cents, { note: d.estimated_wage_cents === null ? 'Not including wage: no hourly rate applies to this date' : '' }),
+    s.employees.length
+      ? h('td', { class: 'num', 'data-label': 'Bartenders', title: staffNote },
+        h('div', { class: 'amt' }, d.bartender_count + ' · ' + hoursText(d.bartender_minutes)),
+        d.staff_tips_cents > 0 ? h('div', { class: 'sub' }, usd0(d.staff_tips_cents) + ' tips') : null)
+      : h('td', { class: 'num none', 'data-label': 'Bartenders' }, h('span', { class: 'muted' }, '—')),
+    h('td', { class: 'actions' }, h('div', { class: 'btns' },
+      iconButton('edit', 'edit', 'Edit shift ' + s.work_date),
+      iconButton('raw', 'raw', (open ? 'Hide' : 'Show') + ' raw data for ' + s.work_date, { class: open ? 'on' : '', attrs: { 'aria-expanded': String(open) } }),
+      s.deleted_at ? null : armed
+        ? iconButton('delete', 'trash', 'Click again to delete shift ' + s.work_date, { class: 'armed', text: 'Delete?' })
+        : iconButton('delete', 'trash', 'Delete shift ' + s.work_date, { class: 'danger' }))));
+  const rows = [tr];
+  if (open) rows.push(h('tr', { class: 'raw' }, h('td', { colspan: '8' }, h('pre', null, JSON.stringify(s, null, 2)))));
+  return rows;
+}
+
+// Delete asks twice (a stray tap can't do it): the first click arms that row's button for a few seconds.
+let armTimer = null;
+function disarm() { clearTimeout(armTimer); state.armed = null; }
+async function deleteShift(id) {
+  disarm();
+  try {
+    await request('DELETE', `/shifts/${id}`);
+    upsertShift(await request('GET', `/shifts/${id}`), { flash: true });   // soft delete: the row keeps its data, marked deleted
+    scheduleStats();
+    renderAll();
+  } catch (err) {
+    if (err instanceof AuthError) return onError(err);
+    renderShifts();
+    toast('Could not delete that shift: ' + (err.problems?.[0] ?? err.message));
+  }
+}
+let toastTimer = null;
+function toast(text) {
+  $('toast').textContent = text;
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 6000);
+}
+
+function renderShifts() {
+  const showDeleted = $('showDeleted').checked;
+  const list = [...state.shifts.values()]
+    .filter((s) => showDeleted || !s.deleted_at)
+    .sort((a, b) => (a.start_at < b.start_at ? 1 : a.start_at > b.start_at ? -1 : a.id < b.id ? 1 : -1));
+  // The table is rebuilt on every change (live updates included), so put keyboard focus back on
+  // the same row button afterwards instead of dropping it to the page.
+  const active = document.activeElement;
+  const focusRow = active?.closest?.('#rows') && active.dataset?.act ? [active.closest('tr.shift').dataset.id, active.dataset.act] : null;
+  $('rows').replaceChildren(...list.flatMap(shiftRow));
+  if (focusRow) document.querySelector(rowSel(...focusRow))?.focus();
+  $('empty').hidden = list.length > 0;
+  $('more').hidden = !state.cursor;
+  if ([...state.flash.values()].some((t) => Date.now() - t < 1700)) setTimeout(renderShifts, 1750); // clear flash class
+}
+
+const ENTITY_NAMES = { income_category: 'income type', wage_rate: 'wage rate' };   // what the rest of the page calls it
+function renderFeed() {
+  $('feedEmpty').hidden = state.feed.length > 0;
+  $('feed').replaceChildren(...state.feed.map((e) => h('li', { class: (e.replay ? 'old' : '') + (Date.now() - Date.parse(e.at) < 1700 ? ' flash' : '') },
+    h('span', { class: 'ev-time' }, new Date(e.at).toLocaleTimeString()),
+    h('span', { class: 'ev-what' }, h('b', { class: 'op-' + e.op }, (ENTITY_NAMES[e.entity] ?? e.entity.replace('_', ' ')) + ' ' + e.op), e.label ? ' · ' + e.label : ''),
+    h('span', { class: 'muted' }, e.note || ''))));
+  $('lastEvent').textContent = state.lastEventAt ? 'last change ' + new Date(state.lastEventAt).toLocaleTimeString() : '';
+}
+
+function renderAll() { renderCounts(); renderShifts(); renderFeed(); }
+let raf = 0;
+function scheduleRender() { cancelAnimationFrame(raf); raf = requestAnimationFrame(renderAll); }
+
+function setStatus(kind, text) {
+  $('status').className = 'status ' + kind;
+  $('statusText').textContent = text;
+}
+
+// ---- live stream (SSE over fetch so the bearer token can ride in a header) -----------
+async function readStream(signal, onBlock) {
+  const res = await fetch('/api/v1/events', { headers: authHeaders(), signal });
+  if (res.status === 401) throw new AuthError();
+  if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    onBlock.touch();
+    buf += value;
+    let i;
+    while ((i = buf.indexOf('\n\n')) >= 0) {
+      const block = buf.slice(0, i); buf = buf.slice(i + 2);
+      let event = 'message', data = '';
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) data += line.slice(5).trim();
+      }
+      if (data) onBlock(event, JSON.parse(data));
+    }
+  }
+}
+
+function onError(err) {
+  if (err instanceof AuthError) { $('auth').hidden = false; setStatus('down', 'Token needed'); }
+}
+
+let connectionId = 0;
+async function run() {
+  const mine = ++connectionId;
+  let backoff = 1000;
+  while (mine === connectionId) {
+    const ctrl = new AbortController();
+    let lastByte = Date.now();
+    const watchdog = setInterval(() => { if (Date.now() - lastByte > 40000) ctrl.abort(); }, 5000); // server pings every 15s
+    const onBlock = (event, data) => {
+      if (event === 'hello') {
+        state.instance = data.instance;
+        for (const e of data.recent) applyEvent(e, { replay: true });
+        setStatus('live', 'Live');
+        snapshot().catch(onError);
+      } else if (event === 'change') {
+        applyEvent(data);
+        scheduleRender();
+      }
+    };
+    onBlock.touch = () => { lastByte = Date.now(); backoff = 1000; };
+    try {
+      setStatus('', 'Connecting…');
+      await readStream(ctrl.signal, onBlock);
+      setStatus('down', 'Disconnected, retrying…');
+    } catch (err) {
+      if (err instanceof AuthError) { onError(err); clearInterval(watchdog); return; }
+      setStatus('down', 'Disconnected, retrying…');
+    }
+    clearInterval(watchdog);
+    await new Promise((r) => setTimeout(r, backoff));
+    backoff = Math.min(backoff * 2, 10000);
+  }
+}
+
+// ---- wiring --------------------------------------------------------------------------
+const rowSel = (id, act) => `tr.shift[data-id="${CSS.escape(id)}"] button[data-act="${act}"]`;
+$('rows').addEventListener('click', (ev) => {
+  // Only the three icon buttons do anything; a click anywhere else on a row does nothing.
+  const button = ev.target.closest('button[data-act]');
+  const tr = ev.target.closest('tr.shift');
+  if (!button || !tr) { if (state.armed) { disarm(); renderShifts(); } return; }
+  const id = tr.dataset.id;
+  const act = button.dataset.act;
+  if (act === 'edit') {
+    const shift = state.shifts.get(id);
+    if (shift) form.openEdit(shift, rowSel(id, 'edit'));
+    return;
+  }
+  if (act === 'delete') {
+    if (state.armed === id) return void deleteShift(id);
+    disarm();
+    state.armed = id;
+    armTimer = setTimeout(() => { state.armed = null; renderShifts(); }, 4000);
+    renderShifts();
+    document.querySelector(rowSel(id, 'delete'))?.focus();
+    return;
+  }
+  if (state.armed) { disarm(); renderShifts(); }
+  state.expanded.has(id) ? state.expanded.delete(id) : state.expanded.add(id);   // the Raw button
+  renderShifts();
+  document.querySelector(rowSel(id, 'raw'))?.focus();
+});
+$('showDeleted').addEventListener('change', renderShifts);
+$('more').addEventListener('click', () => loadMore().catch(onError));
+$('auth').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  setToken($('token').value.trim());
+  $('auth').hidden = true;
+  run();
+});
+const isAuthError = (err) => err instanceof AuthError;
+const onAuth = () => onError(new AuthError());
+const side = createSidePanel();
+const lists = createListsManager({
+  h, request, data: state, side, isAuthError, onAuth,
+  onChange() { form.listsChanged(); scheduleStats(); renderAll(); },
+});
+const employeesView = createEmployeesManager({
+  h, request, data: state, isAuthError, onAuth, format: { dateLabel, usd, usd0 },
+  onChange() { form.listsChanged(); scheduleStats(); renderAll(); },
+});
+const form = createShiftForm({
+  h, request, data: state, side, isAuthError, onAuth,
+  onDataChanged() { scheduleStats(); renderAll(); },   // a person's role was changed from the form
+  onSaved(shift) { upsertShift(shift, { flash: true }); scheduleStats(); renderAll(); },
+  onShiftDate: (date) => lists.setShiftDate(date),
+  onEditLists: (kind) => lists.open(kind),
+});
+// The two views share the header: Shifts (table and live feed) and Employees (roster and side panel). The address
+// carries which one, so a reload or the back button keeps it.
+function applyView() {
+  const view = location.hash === '#employees' ? 'employees' : 'shifts';
+  $('shiftsView').hidden = view !== 'shifts';
+  if (view === 'employees') employeesView.show(); else employeesView.hide();
+  for (const b of document.querySelectorAll('.views button')) {
+    if (b.dataset.view === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  }
+}
+for (const b of document.querySelectorAll('.views button')) b.addEventListener('click', () => { location.hash = b.dataset.view; });
+addEventListener('hashchange', applyView);
+$('newShift').addEventListener('click', () => form.openNew('#newShift'));
+setInterval(renderFeed, 30000); // keeps "recent" styling honest without new events
+applyView();
+run();
+</script>
+</body>
+</html>

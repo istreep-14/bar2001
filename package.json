@@ -1,0 +1,17 @@
+{
+  "name": "bar2000",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Data-first bartender shift log: a small Node + SQLite CRUD server",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test",
+    "backup": "node scripts/backup.js",
+    "import:brv8": "node scripts/import-brv8.js"
+  }
+}
