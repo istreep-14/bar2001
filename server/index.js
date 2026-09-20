@@ -28,6 +28,7 @@ const BROWSER_FILES = {
   '/lists.js': { file: join(ROOT, 'dashboard', 'lists.js'), type: JS },
   '/employees.js': { file: join(ROOT, 'dashboard', 'employees.js'), type: JS },
   '/side.js': { file: join(ROOT, 'dashboard', 'side.js'), type: JS },
+  '/stepper.js': { file: join(ROOT, 'dashboard', 'stepper.js'), type: JS },
   '/viz.js': { file: join(ROOT, 'dashboard', 'viz.js'), type: JS },
   '/insights.js': { file: join(ROOT, 'dashboard', 'insights.js'), type: JS },
   '/tabs.js': { file: join(ROOT, 'dashboard', 'tabs.js'), type: JS },
