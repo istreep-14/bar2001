@@ -96,7 +96,7 @@ button { cursor: pointer; }
 .muted { color: var(--muted); font-size: var(--fs-small); }
 
 /* ---- layout ------------------------------------------------------------------------------ */
-.wrap { max-width: 1320px; margin: 0 auto; padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+.wrap { max-width: 1560px; margin: 0 auto; padding: var(--sp-5) var(--sp-4) var(--sp-7); }
 .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); margin-bottom: var(--sp-5); }
 .brand { font-size: var(--fs-title); line-height: 1.2; font-weight: 700; letter-spacing: -.01em; }
 .brand span { color: var(--accent); }
@@ -150,15 +150,15 @@ button { cursor: pointer; }
 
 /* fields: inputs are styled by element inside the token bar, the employees workspace and the shifts workbench, at zero specificity, so any
    component class below overrides them without a fight */
-:where(.auth, .workspace, .workbench) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+:where(.auth, .workspace, .workbench, .modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
   width: 100%; min-height: var(--field-h); padding: var(--sp-2) var(--sp-3);
   background: var(--field); border: 1px solid var(--line-strong); border-radius: var(--radius-s);
   color: var(--ink); font-size: var(--fs-body);
 }
-:where(.auth, .workspace, .workbench) textarea { min-height: 84px; resize: vertical; }
-:where(.auth, .workspace, .workbench) :is(input, select, textarea)::placeholder { color: var(--muted); opacity: .8; }
-:where(.auth, .workspace, .workbench) :is(input, select, textarea):focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
-:where(.auth, .workspace, .workbench) [aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+:where(.auth, .workspace, .workbench, .modal) textarea { min-height: 84px; resize: vertical; }
+:where(.auth, .workspace, .workbench, .modal) :is(input, select, textarea)::placeholder { color: var(--muted); opacity: .8; }
+:where(.auth, .workspace, .workbench, .modal) :is(input, select, textarea):focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+:where(.auth, .workspace, .workbench, .modal) [aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
 .field { display: grid; gap: var(--sp-1); font-size: var(--fs-small); font-weight: 500; color: var(--muted); }
 
 /* segmented choice (shift type, list tabs): real radios, visually hidden */
@@ -174,7 +174,7 @@ button { cursor: pointer; }
 .addrow { display: flex; gap: var(--sp-2); }
 .addrow input { flex: 1; min-width: 0; }
 
-/* ---- shift table: one compact row per shift, every cell two short lines (the figure, then its per-hour or detail) --- */
+/* ---- shift table: one line per shift, a column for every figure, so it reads across ------------------------------- */
 .scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
@@ -183,18 +183,24 @@ th:last-child, td:last-child { padding-right: var(--sp-3); }
 td { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); vertical-align: middle; line-height: 1.35; }
 tbody tr:last-child td { border-bottom: 0; }
 th.num, td.num { text-align: right; }
+table.shifts { min-width: 980px; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.shifts th { padding: var(--sp-2) 8px; letter-spacing: .05em; }
+table.shifts td { padding: 5px 8px; white-space: nowrap; }
+table.shifts :is(th, td):first-child { padding-left: var(--sp-4); }
+table.shifts td.num { font-variant-numeric: tabular-nums; }
+table.shifts td.rate { color: var(--muted); }
+table.shifts td.hrs { font-weight: 600; }
+table.shifts td.when { font-weight: 600; }
+table.shifts td.kind { min-width: 92px; }
+table.shifts td.kind .badge + .badge { margin-left: 4px; }
+table.shifts td.place { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+table.shifts td.span { color: var(--muted); }
+table.shifts td.actions { padding-right: var(--sp-2); }
 tr.shift { transition: background-color .12s; }
 tr.shift:hover { background: var(--hover); }
 tr.deleted td:not(.actions) { opacity: .5; }
 tr.deleted .day { text-decoration: line-through; }
 
-td .sub { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--muted); white-space: nowrap; }
-td.num .sub { justify-content: flex-end; }
-td .day, td .range { font-weight: 600; white-space: nowrap; }
-td.clock .range { font-variant-numeric: tabular-nums; }
-td .amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-td.num .sub { font-variant-numeric: tabular-nums; }
-.place { overflow: hidden; max-width: 96px; text-overflow: ellipsis; }
 .badge { display: inline-block; padding: 0 var(--sp-2); border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; line-height: 1.6; letter-spacing: .05em; text-transform: uppercase; }
 .badge-day { background: var(--day-soft); color: var(--day); }
 .badge-night { background: var(--night-soft); color: var(--night); }
@@ -244,21 +250,17 @@ ol.feed li.old { opacity: .6; }
 
 /* ---- the shifts workbench: tabbed navigation on the left, the selected group's input on the right ---- */
 .spacer { flex: 1; }
-.workbench { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+.workbench { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .panes { display: grid; gap: var(--sp-4); min-width: 0; }
 .panes > * { min-width: 0; }
-#shiftForm { display: grid; gap: var(--sp-4); }
 .pane-body { padding: 0 var(--sp-5) var(--sp-2); }
 .pane-body.flush { padding: 0; }
 .pane-body > .fsec { max-width: 760px; }
-.panefoot { display: flex; gap: var(--sp-3); margin-top: var(--sp-2); padding: var(--sp-4) 0 var(--sp-3); border-top: 1px solid var(--line); }
 .leftnav { padding-bottom: 0; }
 .navhead { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4) var(--sp-2); }
 .navhead .btn { min-height: 34px; padding: 0 var(--sp-3); }
 .navhead h2 { font-size: var(--fs-heading); line-height: 1.3; font-weight: 600; }
 .navlabel { padding: var(--sp-3) var(--sp-4) 0; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.navfoot { position: sticky; bottom: 0; display: grid; gap: var(--sp-2); margin-top: var(--sp-2); padding: var(--sp-3); border-top: 1px solid var(--line); background: var(--panel); }
-.navfoot .btn { width: 100%; }
 
 /* the tabs: a group's name, and under it a live line saying what is in it */
 .tablist { display: grid; gap: 2px; padding: var(--sp-1) var(--sp-2); }
@@ -562,9 +564,32 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
 .chartgrid.three { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
 .card { min-width: 0; padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-m); }
 
+/* ---- the shift entry dialog: a layer over the shifts view, so entering a shift is one level down from browsing --------- */
+body:has(dialog[open]) { overflow: hidden; }
+.modal { display: none; width: min(1080px, calc(100vw - 32px)); height: min(800px, calc(100dvh - 48px)); max-width: none; max-height: none; margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--radius-l); background: var(--panel); color: var(--ink); box-shadow: var(--shadow-raised); }
+.modal[open] { display: block; }
+.modal::backdrop { background: rgb(10 25 24 / .58); }
+#shiftForm { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.dlghead { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); }
+.crumbs { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: baseline; gap: 2px var(--sp-2); min-width: 0; font-size: var(--fs-body); color: var(--muted); }
+.crumbs b { font-size: var(--fs-heading); font-weight: 600; color: var(--ink); }
+.crumbs #dlgPage { font-weight: 500; color: var(--accent); }
+.crumbs .linkbtn { font-size: var(--fs-body); }
+.dlgmeta { flex: 0 1 auto; overflow: hidden; font-size: var(--fs-small); color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.dlghead .btn { min-height: 34px; padding: 0 var(--sp-3); }
+.modal .banner, .modal .errors { flex: none; margin: var(--sp-3) var(--sp-5) 0; }
+.dlgbody { display: grid; flex: 1 1 auto; grid-template-columns: 236px minmax(0, 1fr); min-height: 0; }
+.steps { overflow-y: auto; padding: var(--sp-2) var(--sp-2) var(--sp-4); border-right: 1px solid var(--line); background: var(--field); }
+.steppanes { min-width: 0; overflow-y: auto; }
+.modal .pane-body { padding: var(--sp-2) var(--sp-6) var(--sp-5); }
+.modal .fsec:first-child { padding-top: var(--sp-4); }
+.dlgfoot { display: flex; flex: none; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--line); background: var(--panel); }
+.dlgfoot .btn { min-width: 84px; }
+.dlgfoot .btn-primary { min-width: 120px; }
+
 /* ---- small screens ----------------------------------------------------------------------- */
 @media (min-width: 1101px) {
-  #shiftsView .leftnav { position: sticky; top: var(--sp-4); max-height: calc(100dvh - 104px); overflow-y: auto; }   /* stays in view; Save and Cancel stay at its foot */
+  #shiftsView .leftnav { position: sticky; top: var(--sp-4); max-height: calc(100dvh - 104px); overflow-y: auto; }   /* stays in view while a long table scrolls */
   #employeesPage .side { position: sticky; top: var(--sp-4); max-height: calc(100dvh - var(--sp-5)); overflow-y: auto; }   /* stays in view beside a long roster */
 }
 @media (max-width: 1100px) {
@@ -578,36 +603,33 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
   .toolbar { flex-wrap: nowrap; width: 100%; gap: var(--sp-2); }
   .toolbar .check { flex: 1; }
   .toolbar .btn { padding: 0 var(--sp-3); }
-  /* each shift becomes a card: date and actions on the first line, the time under it, then the four money figures in one row */
-  table, tbody { display: block; }
-  thead { display: none; }
-  tr.shift { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
-  tr.shift td { display: block; padding: 0; border: 0; text-align: left; }
-  tr.shift td:nth-child(1) { grid-column: 1; grid-row: 1; }
-  tr.shift td:nth-child(5) { grid-column: 2; grid-row: 1; width: auto; padding: 0; }
-  tr.shift td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
-  tr.shift td.num { text-align: left; }
-  tr.shift td.num .sub { justify-content: flex-start; font-size: 11px; }
-  tr.shift td.num .amt { font-size: 13px; }
-  tr.shift td[data-label]::before { content: attr(data-label); display: block; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  tr.detail, tr.detail td, tr.month, tr.month th { display: block; }
-  tr.detail td { padding: var(--sp-3) var(--sp-4) var(--sp-4); border-bottom: 1px solid var(--line); }
-  tr.month th { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
-  .msum { display: block; margin: 0; }
-  .facts-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  /* the shift table keeps every column and scrolls sideways, with the date pinned; a month heading stays in view */
+  table.shifts :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); box-shadow: 1px 0 0 var(--line); }
+  table.shifts tr.shift:hover td:first-child { background: var(--hover); }
+  table.shifts tr.detail td, table.shifts tr.month th { padding-left: var(--sp-4); }
+  .mname, .msum { position: sticky; left: var(--sp-4); }
+  .msum { display: inline-block; }
+  .facts-grid { grid-template-columns: minmax(0, 1fr); gap: 0; position: sticky; left: var(--sp-4); max-width: calc(100vw - 2 * var(--sp-4) - 24px); }
   .facts-grid dd { margin-bottom: var(--sp-2); }
   .icon-btn { min-width: 40px; height: 40px; }
   .toolbar { flex-wrap: wrap; }
   .toolbar .check { flex: 1 0 100%; }
   .toolbar .btn { flex: 1; }
   .hide-sm { display: none; }
-  table.roster { display: table; min-width: 0; }   /* the shift table above turns into cards on a phone; the roster stays a table */
-  table.roster thead { display: table-header-group; }
-  table.roster tbody { display: table-row-group; }
   .tier { padding: var(--sp-4); }
   /* the left panel becomes a row of tabs across the top; Save and Cancel become a bar along the bottom */
   .workbench { grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
   .navhead { padding: var(--sp-3) var(--sp-4) 0; }
+  /* the dialog fills the screen; its pages become a row of tabs across the top, and Back / Next / Save stay in the bar below */
+  .modal { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
+  .dlghead { padding: var(--sp-3) var(--sp-4); }
+  .dlgmeta { order: 3; flex: 1 0 100%; }
+  .dlgbody { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .steps { padding: var(--sp-1) 0 0; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
+  .modal .pane-body { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+  .modal .banner, .modal .errors { margin: var(--sp-3) var(--sp-4) 0; }
+  .dlgfoot { padding: var(--sp-3) var(--sp-4); }
+  .dlgfoot .btn { flex: 1; min-width: 0; padding: 0 var(--sp-2); }
   .navgroups { display: flex; overflow-x: auto; padding: var(--sp-1) var(--sp-2) 0; }   /* the groups run together as one row of tabs */
   .navgroup, .tablist { display: contents; }
   .navlabel { display: none; }
@@ -615,8 +637,6 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
   .tablist button[aria-selected="true"]::before { left: var(--sp-3); right: var(--sp-3); top: auto; bottom: 0; width: auto; height: 3px; }
   .tablist button[data-flag]::after { top: 6px; right: 2px; }
   .tabsum { display: none; }
-  .navfoot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; grid-auto-flow: column; grid-auto-columns: 1fr; margin: 0; padding: var(--sp-3) var(--sp-4); background: var(--panel); border-top: 1px solid var(--line); box-shadow: var(--shadow-raised); }
-  body[data-mode="edit"] .wrap { padding-bottom: 96px; }
   .pane-body { padding: 0 var(--sp-4) var(--sp-2); }
   .tier-foot { grid-template-columns: minmax(0, 1fr); }
   .addbar { padding: var(--sp-3) var(--sp-3) 0; }
@@ -625,7 +645,7 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
   ol.feed li { padding: var(--sp-3) var(--sp-4); }
 
   /* inputs are 16px so phones don't zoom */
-  :where(.auth, .workspace, .workbench) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: 16px; }
+  :where(.auth, .workspace, .workbench, .modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: 16px; }
   .banner, .errors { margin: var(--sp-3) var(--sp-4) 0; }
   .pill { min-height: 40px; padding: 0 var(--sp-4); font-size: var(--fs-body); }
   .seg label { min-height: 46px; }

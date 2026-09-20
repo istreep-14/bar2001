@@ -4,7 +4,7 @@
 //   browse  the Calendar page: each shift is a chip (type, hours, income) that opens it, a day's shade is how much it
 //           earned relative to the month's best, and an empty day starts a new shift on that date.
 // Weeks run Monday to Sunday. Dates are 'YYYY-MM-DD' strings handled as calendar arithmetic, never through the local timezone.
-import { h, svg, css, usd0, hours1, tiles, TYPE_LETTER, TYPE_NAME, monthName, weekdayName, shortDate } from '/viz.js';
+import { h, svg, css, usd0, hours1, tiles, facts, TYPE_LETTER, TYPE_NAME, monthName, weekdayName, shortDate } from '/viz.js';
 import { addDays } from '/time.js';
 import { tipsPerHour, totalPerHour, weekdayIndex } from '/insights.js';
 
@@ -97,7 +97,10 @@ export function createCalendar({ mode, data, derive, selected = () => null, excl
     if (had) grid.querySelector(`button.day[data-date="${had}"]`)?.focus({ preventScroll: true });
     grid.setAttribute('role', mode === 'pick' ? 'group' : 'presentation');
     grid.setAttribute('aria-label', `${monthName(m)} ${y}`);
-    foot.replaceChildren(month.n
+    // the form's small calendar keeps to one quiet line; the Calendar page gives the month its tiles
+    foot.replaceChildren(month.n && mode === 'pick'
+      ? facts([{ label: monthName(m), value: `${month.n} shift${month.n === 1 ? '' : 's'}` }, { label: 'Hours', value: hours1(month.minutes) }, { label: 'Tips', value: usd0(month.tips) }])
+      : month.n
       ? tiles([
         { label: 'Shifts', value: String(month.n) },
         { label: 'Hours worked', value: hours1(month.minutes) },

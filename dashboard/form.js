@@ -4,7 +4,7 @@
 // (served at /time.js), so the two can never disagree about overnight shifts.
 //
 // The form is not a popup and not one long scroll. It is a set of pages in section groups (Info: Date, Time, Type;
-// Income: Tips, Wage, Misc; Details: Location, Crew, Party, Notes), each a tab in the left panel (dashboard/side.js)
+// Income: Tips, Wage, Misc; Details: Location, Crew, Party, Notes), each a tab in the left panel (dashboard/stepper.js)
 // with a live one-line summary, and the selected page's input in the panel to the right. Each page also shows what
 // the shift comes to as you fill it in (stat tiles, and a chart where one helps): the Date page is a calendar of the
 // shifts you have logged, Time draws the shift along the clock with its breaks, Tips and Location compare with your
@@ -257,10 +257,10 @@ export function createPartyList({ h, onChange }) {
   };
 }
 
-// `side` is the tabbed left panel (it switches the page between browsing and editing), `onDataChanged` says a
+// `stepper` is the dialog the form lives in (dashboard/stepper.js: it opens, closes and switches pages), `onDataChanged` says a
 // person was changed through the form (their role) so the page redraws, `onShiftDate(date | null)` tells the lists which
 // date the shift is on. The lists themselves (locations, misc types, wage rates) are not edited here: they live under Lists.
-export function createShiftForm({ h, request, isAuthError, data, side, derive, onDataChanged, onShiftDate, onSaved, onAuth }) {
+export function createShiftForm({ h, request, isAuthError, data, stepper, derive, onDataChanged, onShiftDate, onSaved, onAuth }) {
   const $ = (id) => document.getElementById(id);
   const root = $('shiftForm'); // every group's pane is inside it
   const INVALID = '#shiftForm [aria-invalid]';
@@ -386,8 +386,9 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     disarm();
     $('deleteShift').hidden = ctx.mode !== 'edit' || !!ctx.orig.deleted_at;
     $('saveShift').textContent = ctx.orig?.deleted_at ? 'Save and restore' : 'Save shift';
-    side.setMode('edit', { title: v.title, show: 'date' });
-    window.scrollTo({ top: 0 });
+    if (ctx) ctx.dirty = false;
+    disarmClose();
+    stepper.open({ title: v.title, show: 'date' });
     pickCalendar.focus();
   }
 
@@ -523,7 +524,7 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     history = null;
     const box = $('wageLine');
     const date = $('fDate').value;
-    const shown = side.current();
+    const shown = stepper.current();
     onShiftDate?.(/^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null); // the wage range that applies is marked on the Wage page
     if (shown === 'date') { paintDate(date); pickCalendar.show(date); }
     if (shown === 'type') paintTypeHistory();
@@ -851,10 +852,10 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
   // `d` is the shift's derived block, or null while the date and times aren't valid yet.
   function paintSummaries(d) {
     const date = $('fDate').value;
-    side.summarize('date', /^\d{4}-\d{2}-\d{2}$/.test(date) ? dayLabel(date) : 'Not set');
+    stepper.summarize('date', /^\d{4}-\d{2}-\d{2}$/.test(date) ? dayLabel(date) : 'Not set');
     const breaks = breakList.count();
-    side.summarize('time', ($('fStart').value && $('fEnd').value ? `${clock($('fStart').value)} → ${clock($('fEnd').value)}` : 'Not set') + (breaks ? ` · ${breaks} break${breaks === 1 ? '' : 's'}` : ''));
-    side.summarize('type', TYPE_LABEL[ctx.type] ?? 'Not chosen');
+    stepper.summarize('time', ($('fStart').value && $('fEnd').value ? `${clock($('fStart').value)} → ${clock($('fEnd').value)}` : 'Not set') + (breaks ? ` · ${breaks} break${breaks === 1 ? '' : 's'}` : ''));
+    stepper.summarize('type', TYPE_LABEL[ctx.type] ?? 'Not chosen');
     let tips = 0;
     let other = 0;
     for (const e of ctx.entries) {
@@ -862,16 +863,17 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
       if (!cents) continue;
       if (isTips(e)) tips += cents; else other += cents;
     }
-    side.summarize('tips', tips ? usd0(tips) : 'None');
-    side.summarize('wage', d ? (d.estimated_wage_cents === null ? 'No rate set' : usd0(d.estimated_wage_cents)) : '—');
-    side.summarize('misc', other ? usd0(other) : 'None');
-    side.summarize('location', $('fLocation').value.trim() || 'Not set');
+    stepper.summarize('tips', tips ? usd0(tips) : 'None');
+    stepper.summarize('wage', d ? (d.estimated_wage_cents === null ? 'No rate set' : usd0(d.estimated_wage_cents)) : '—');
+    stepper.summarize('misc', other ? usd0(other) : 'None');
+    stepper.summarize('location', $('fLocation').value.trim() || 'Not set');
     const n = ctx.staff.length;
-    side.summarize('crew', n ? `${n} ${n === 1 ? 'person' : 'people'}` + (d ? ` · ${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'}` : '') : 'Just you');
+    stepper.summarize('crew', n ? `${n} ${n === 1 ? 'person' : 'people'}` + (d ? ` · ${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'}` : '') : 'Just you');
     const parties = partyList.summary();
-    side.summarize('party', parties.length ? parties.join('; ') : 'No party');
+    stepper.summarize('party', parties.length ? parties.join('; ') : 'No party');
     const notes = $('fNotes').value.trim();
-    side.summarize('notes', notes ? clip(notes, 28) : $('fTags').value.trim() ? clip($('fTags').value.trim(), 28) : 'None');
+    stepper.setMeta([/^\d{4}-\d{2}-\d{2}$/.test(date) ? dayLabel(date) : '', TYPE_LABEL[ctx.type] ?? '', d ? usd0(d.total_income_cents) + ' total' : ''].filter(Boolean).join(' · '));
+    stepper.summarize('notes', notes ? clip(notes, 28) : $('fTags').value.trim() ? clip($('fTags').value.trim(), 28) : 'None');
   }
 
   // A dot on every tab that holds a field with a problem.
@@ -881,7 +883,7 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
       const name = el.closest('[role="tabpanel"][data-tab]')?.dataset.tab;
       if (name) names.add(name);
     }
-    side.flag(names);
+    stepper.flag(names);
     for (const tabs of [breakList.tabs, partyList.tabs, crewTabs]) tabs.flag();
   }
 
@@ -1063,7 +1065,7 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
   }
   // A problem in a field on another tab: bring that tab up, on the right person if it is a crew member's.
   function revealProblem(el) {
-    side.reveal(el);
+    stepper.reveal(el);
     for (const tabs of [breakList.tabs, partyList.tabs, crewTabs]) if (tabs.reveal(el)) break;   // and the break, party or person it is in
   }
   function showBanner(text) {
@@ -1079,17 +1081,43 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     const opener = ctx.opener;
     disarm();
     ctx = null;
-    side.setMode('browse'); // back to the page you came from
+    disarmClose();
+    stepper.close(); // back to the browse page underneath
     onShiftDate?.(null);
     if (opener) document.querySelector(opener)?.focus();
   }
 
-  document.addEventListener('sidepaint', () => { if (ctx) refreshDerived(); }); // a page was switched to: draw its numbers now
+  // Closing (Close, the Shifts crumb, Esc) throws typed changes away, so the first ask when there are some turns the button
+  // into "Discard changes?" for a few seconds, the same two clicks as Delete.
+  let discardTimer = null;
+  function disarmClose() {
+    clearTimeout(discardTimer);
+    if (ctx) ctx.discardArmed = false;
+    $('closeForm').textContent = 'Close';
+    $('closeForm').classList.remove('armed');
+  }
+  function requestClose() {
+    if (!ctx || ctx.saving) return;
+    if (!ctx.dirty || ctx.discardArmed) return close();
+    ctx.discardArmed = true;
+    $('closeForm').textContent = 'Discard changes?';
+    $('closeForm').classList.add('armed');
+    $('closeForm').focus();
+    discardTimer = setTimeout(disarmClose, 4000);
+    return undefined;
+  }
+  stepper.onCancel(requestClose);
+  document.addEventListener('steppaint', () => { if (ctx) refreshDerived(); }); // a page was switched to: draw its numbers now
   $('shiftForm').addEventListener('submit', (ev) => { ev.preventDefault(); save(); });
-  $('cancelForm').addEventListener('click', close);
-  $('closeForm').addEventListener('click', close);
+  $('closeForm').addEventListener('click', requestClose);
+  $('crumbShifts').addEventListener('click', requestClose);
+  // any button that changes the shift (adding a break, picking someone, removing tips…) counts as a change
+  root.addEventListener('click', (ev) => {
+    if (ctx && ev.target.closest('button') && !ev.target.closest('[role="tab"], [data-step], #closeForm, #crumbShifts, .cal button')) ctx.dirty = true;
+  });
   $('deleteShift').addEventListener('click', remove);
   const edited = (ev) => {
+    if (ctx) ctx.dirty = true;
     refreshDerived();
     ev.target.removeAttribute?.('aria-invalid');
     const box = $('formErrors');
