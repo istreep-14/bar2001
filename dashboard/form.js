@@ -5,7 +5,10 @@
 //
 // The form is not a popup and not one long scroll. It is a set of pages in section groups (Info: Date, Time, Type;
 // Income: Tips, Wage, Misc; Details: Location, Crew, Party, Notes), each a tab in the left panel (dashboard/side.js)
-// with a live one-line summary, and the selected page's input in the panel to the right. The lists a shift points at are
+// with a live one-line summary, and the selected page's input in the panel to the right. Each page also shows what
+// the shift comes to as you fill it in (stat tiles, and a chart where one helps): the Date page is a calendar of the
+// shifts you have logged, Time draws the shift along the clock with its breaks, Tips and Location compare with your
+// history. Things that can be many (breaks, parties, the people on the shift) are a strip of tabs, one editor open at a time. The lists a shift points at are
 // not pages of their own here: each is edited on the page it feeds (dashboard/lists.js), so locations are on Location,
 // misc types on Misc and wage rates, as date ranges, on Wage. Location is picked from a list that lives on the server
 // and employees from the employees table; a name typed that isn't there yet is added on save. Within Crew, the person
@@ -14,6 +17,10 @@
 import { toMinutes, addDays, joinLocal, wallMinutes, resolveEnd, resolveNearSpan, dateOf, timeOf, daysBetween } from '/time.js';
 import { deriveShift, hoursText, isBartender } from '/pay.js';
 import { SUGGESTED_ROLES } from '/employees.js';
+import { createTabs } from '/tabs.js';
+import { createCalendar } from '/calendar.js';
+import { summarize, tipsPerHour, perHour } from '/insights.js';
+import { tiles, columnChart, hbars, incomeMix, createRibbon, usd0, hours1, shortDate, TYPE_NAME } from '/viz.js';
 
 const FIELD_LABELS = {
   job_id: 'Job', location_id: 'Location', employees: 'Employees', parties: 'Party', work_date: 'Date', start_at: 'Start', end_at: 'End',
@@ -48,47 +55,57 @@ const sameName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 let breakCounter = 0;
 
-// Zero to many breaks for any time range: "+ Add a break" adds a row. A row is a start and end
-// time, or (switch) just a length in minutes. Give `read` the range's resolved start and end
-// ('YYYY-MM-DDTHH:MM') and it returns { value: [{start_at, end_at} | {minutes}], problems }.
-export function createBreakList({ h }) {
+// Zero to many breaks for any time range, as a strip of tabs: "Break 1 · 30 min", "Break 2 · 15 min", "+ Add break". One
+// break's editor is open at a time. A break is a start and end time, or (switch) just a length in minutes. Give `read` the
+// range's resolved start and end ('YYYY-MM-DDTHH:MM') and it returns { value: [{start_at, end_at} | {minutes}], problems }.
+export function createBreakList({ h, onChange }) {
   const uid = ++breakCounter;
   let serial = 0;
   let rows = [];
+  const tabs = createTabs({
+    label: 'Breaks', addLabel: '+ Add break', empty: 'No breaks. Add one if you took any: a start and end time, or just how long.',
+    onAdd() { const row = makeRow(); rows.push(row); sync(row.id); onChange?.(); row.start.focus(); },
+  });
+  const el = tabs.el;
 
-  const add = h('button', { type: 'button', class: 'linkbtn' }, '+ Add a break');
-  const list = h('div', { class: 'breaklist' });
-  const el = h('div', { class: 'breaks' }, list, add);
+  // "30 min" for the tab: a typed length, or the gap between the two times
+  function lengthText(row) {
+    if (row.mode === 'minutes') return /^\d{1,4}$/.test(row.minutes.value.trim()) ? `${Number(row.minutes.value)} min` : 'no length';
+    const s = toMinutes(row.start.value);
+    const e = toMinutes(row.end.value);
+    return s === null || e === null ? 'no times' : `${(e - s + 1440) % 1440 || 1440} min`;
+  }
 
   function makeRow(init = {}) {
     const n = ++serial;
-    const row = { mode: init.minutes ? 'minutes' : 'range' };
+    const row = { id: n, mode: init.minutes ? 'minutes' : 'range' };
     row.start = h('input', { type: 'time', id: `brk${uid}-${n}s` });
     row.end = h('input', { type: 'time', id: `brk${uid}-${n}e` });
     row.minutes = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', id: `brk${uid}-${n}m`, placeholder: '30' });
     if (init.start_at) { row.start.value = timeOf(init.start_at); row.end.value = timeOf(init.end_at); }
     if (init.minutes) row.minutes.value = String(init.minutes);
-    row.label = h('span', { class: 'bn' });
     row.swap = h('button', { type: 'button', class: 'linkbtn' });
-    row.remove = h('button', { type: 'button', class: 'linkbtn' }, 'Remove');
-    row.rangeFields = h('div', { class: 'bfields' }, row.start, h('span', { class: 'to', 'aria-hidden': 'true' }, 'to'), row.end);
-    row.minuteFields = h('div', { class: 'bfields' }, row.minutes, h('span', { class: 'to' }, 'minutes'));
-    row.el = h('div', { class: 'brow', role: 'group' }, row.label, row.rangeFields, row.minuteFields, h('div', { class: 'bacts' }, row.swap, row.remove));
-    for (const input of [row.start, row.end, row.minutes]) input.addEventListener('input', () => input.removeAttribute('aria-invalid'));
-    row.swap.addEventListener('click', () => { row.mode = row.mode === 'range' ? 'minutes' : 'range'; sync(); (row.mode === 'range' ? row.start : row.minutes).focus(); });
+    row.remove = h('button', { type: 'button', class: 'linkbtn' }, 'Remove this break');
+    row.rangeFields = h('div', { class: 'bfields' }, h('label', { class: 'mini' }, 'Starts', row.start), h('span', { class: 'to', 'aria-hidden': 'true' }, '→'), h('label', { class: 'mini' }, 'Ends', row.end));
+    row.minuteFields = h('div', { class: 'bfields' }, h('label', { class: 'mini' }, 'Length in minutes', row.minutes));
+    row.el = h('div', { class: 'brow' }, row.rangeFields, row.minuteFields, h('div', { class: 'bacts' }, row.swap, row.remove));
+    for (const input of [row.start, row.end, row.minutes]) {
+      input.addEventListener('input', () => { input.removeAttribute('aria-invalid'); tabs.setSub(row.id, lengthText(row)); });
+    }
+    row.swap.addEventListener('click', () => { row.mode = row.mode === 'range' ? 'minutes' : 'range'; sync(row.id); (row.mode === 'range' ? row.start : row.minutes).focus(); });
     row.remove.addEventListener('click', () => {
       const i = rows.indexOf(row);
       rows.splice(i, 1);
-      sync();
-      (rows[Math.min(i, rows.length - 1)]?.remove ?? add).focus();
+      sync(rows[Math.min(i, rows.length - 1)]?.id);
+      onChange?.();
+      if (rows.length) tabs.select(rows[Math.min(i, rows.length - 1)].id, { focus: true }); else tabs.focusAdd();
     });
     return row;
   }
 
-  function sync() {
+  function sync(select) {
     rows.forEach((row, i) => {
       const name = `Break ${i + 1}`;
-      row.label.textContent = name;
       row.el.setAttribute('aria-label', name);
       row.remove.setAttribute('aria-label', `Remove ${name.toLowerCase()}`);
       row.start.setAttribute('aria-label', `${name} start`);
@@ -98,20 +115,12 @@ export function createBreakList({ h }) {
       row.minuteFields.hidden = row.mode !== 'minutes';
       row.swap.textContent = row.mode === 'range' ? 'Enter a length instead' : 'Enter times instead';
     });
-    list.replaceChildren(...rows.map((r) => r.el));
-    add.textContent = rows.length ? '+ Add another break' : '+ Add a break';
+    tabs.setItems(rows.map((row, i) => ({ id: row.id, label: `Break ${i + 1}`, sub: lengthText(row), panel: row.el })), { select });
   }
-
-  add.addEventListener('click', () => {
-    const row = makeRow();
-    rows.push(row);
-    sync();
-    row.start.focus();
-  });
 
   function load(breaks = []) {
     rows = breaks.map(makeRow);
-    sync();
+    sync(rows[0]?.id);
   }
 
   function read({ S, E }) {
@@ -143,33 +152,38 @@ export function createBreakList({ h }) {
     for (let i = 1; i < ranges.length; i++) {
       if (ranges[i].start_at < ranges[i - 1].end_at) bad(ranges[i].row.start, `${ranges[i].name} overlaps ${ranges[i - 1].name}.`);
     }
-    if (!problems.length && total > wallMinutes(S, E)) bad(rows[0]?.el, 'Together the breaks are longer than the shift.');
+    if (!problems.length && total > wallMinutes(S, E)) bad(rows[0] && (rows[0].mode === 'range' ? rows[0].start : rows[0].minutes), 'Together the breaks are longer than the shift.');
     return { value, problems };
   }
 
   load([]);
-  return { el, load, read, count: () => rows.length };
+  return { el, tabs, load, read, count: () => rows.length };
 }
 
 let partyCounter = 0;
 
-// Zero to many parties. That a shift had one is what matters (a yes/no to compare shifts by), so every detail is
-// optional: an empty block is still a party. `read` gives { value: [{name, guests, start_at, end_at, notes}], problems }.
+// Zero to many parties, as a strip of tabs (each named for its party, "Smith 40th · 40 guests"). That a shift had one is
+// what matters (a yes/no to compare shifts by), so every detail is optional: an empty tab is still a party.
+// `read` gives { value: [{name, guests, start_at, end_at, notes}], problems }.
 export function createPartyList({ h, onChange }) {
   const uid = ++partyCounter;
   let serial = 0;
   let rows = [];
-  const list = h('div', { class: 'rows' });
-  const add = h('button', { type: 'button', class: 'linkbtn' }, '+ Add another party');
-  const el = h('div', { class: 'partylist' }, list, add);
+  const tabs = createTabs({
+    label: 'Parties', addLabel: '+ Add another party', empty: '',
+    onAdd() { const row = makeRow(); rows.push(row); sync(row.id); onChange?.(); row.name.focus(); },
+  });
+  const el = tabs.el;
 
   const field = (label, input) => h('label', { class: 'mini' }, label, input);
+  const nameOf = (row, i) => row.name.value.trim() || `Party ${i + 1}`;
+  const guestsOf = (row) => (row.guests.value.trim() ? `${row.guests.value.trim()} guests` : '');
 
   function makeRow(init = {}) {
     const n = ++serial;
-    const row = {};
+    const row = { id: n };
     row.name = h('input', { type: 'text', maxlength: '200', autocomplete: 'off', placeholder: 'Who it was for, or what', id: `pty${uid}-${n}n` });
-    row.guests = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'Guests', id: `pty${uid}-${n}g` });
+    row.guests = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'How many', id: `pty${uid}-${n}g` });
     row.start = h('input', { type: 'time', id: `pty${uid}-${n}s` });
     row.end = h('input', { type: 'time', id: `pty${uid}-${n}e` });
     row.notes = h('input', { type: 'text', maxlength: '2000', autocomplete: 'off', placeholder: 'Anything worth remembering', id: `pty${uid}-${n}o` });
@@ -177,35 +191,33 @@ export function createPartyList({ h, onChange }) {
     row.guests.value = blank(init.guests);
     row.notes.value = blank(init.notes);
     if (init.start_at) { row.start.value = timeOf(init.start_at); row.end.value = timeOf(init.end_at); }
-    row.label = h('span', { class: 'bn' });
-    row.remove = h('button', { type: 'button', class: 'linkbtn' }, 'Remove');
-    row.el = h('div', { class: 'prow', role: 'group' },
-      h('div', { class: 'phead' }, row.label, row.remove),
+    row.remove = h('button', { type: 'button', class: 'linkbtn' }, 'Remove this party');
+    row.el = h('div', { class: 'prow' },
       h('div', { class: 'pgrid' }, field('Name', row.name), field('Guests', row.guests), field('Starts', row.start), field('Ends', row.end)),
-      field('Notes', row.notes));
+      field('Notes', row.notes),
+      h('div', { class: 'bacts' }, row.remove));
     for (const input of [row.name, row.guests, row.start, row.end, row.notes]) input.addEventListener('input', () => input.removeAttribute('aria-invalid'));
+    for (const input of [row.name, row.guests]) {
+      input.addEventListener('input', () => { tabs.setLabel(row.id, nameOf(row, rows.indexOf(row))); tabs.setSub(row.id, guestsOf(row)); });
+    }
     row.remove.addEventListener('click', () => {
       const i = rows.indexOf(row);
       rows.splice(i, 1);
-      sync();
+      sync(rows[Math.min(i, rows.length - 1)]?.id);
       onChange?.();
-      (rows[Math.min(i, rows.length - 1)]?.remove ?? add).focus?.();
+      if (rows.length) tabs.select(rows[Math.min(i, rows.length - 1)].id, { focus: true }); else tabs.focusAdd();
     });
     return row;
   }
 
-  function sync() {
+  function sync(select) {
     rows.forEach((row, i) => {
       const name = `Party ${i + 1}`;
-      row.label.textContent = name;
       row.el.setAttribute('aria-label', name);
       row.remove.setAttribute('aria-label', `Remove ${name.toLowerCase()}`);
     });
-    list.replaceChildren(...rows.map((r) => r.el));
-    add.hidden = rows.length === 0;
+    tabs.setItems(rows.map((row, i) => ({ id: row.id, label: nameOf(row, i), sub: guestsOf(row), panel: row.el })), { select });
   }
-
-  add.addEventListener('click', () => { const row = makeRow(); rows.push(row); sync(); onChange?.(); row.name.focus(); });
 
   function read({ S, E }) {
     const problems = [];
@@ -234,32 +246,56 @@ export function createPartyList({ h, onChange }) {
   sync();
   return {
     el,
+    tabs,
     count: () => rows.length,
-    load(parties = []) { rows = parties.map(makeRow); sync(); },
+    load(parties = []) { rows = parties.map(makeRow); sync(rows[0]?.id); },
     // the yes/no checkbox: on adds an empty party, off removes them all
-    setPresent(on) { if (on && rows.length === 0) rows.push(makeRow()); if (!on) rows = []; sync(); },
+    setPresent(on) { if (on && rows.length === 0) rows.push(makeRow()); if (!on) rows = []; sync(rows[0]?.id); },
     read,
     // One short line per party, for the form's summary: "Smith 40th · 40 guests".
-    summary: () => rows.map((row, i) => [row.name.value.trim() || `Party ${i + 1}`, row.guests.value.trim() && `${row.guests.value.trim()} guests`].filter(Boolean).join(' · ')),
+    summary: () => rows.map((row, i) => [nameOf(row, i), guestsOf(row)].filter(Boolean).join(' · ')),
   };
 }
 
 // `side` is the tabbed left panel (it switches the page between browsing and editing), `onDataChanged` says a
 // person was changed through the form (their role) so the page redraws, `onShiftDate(date | null)` tells the lists which
 // date the shift is on, and `onEditLists(kind)` takes you to where a list is edited ("Set your hourly wage").
-export function createShiftForm({ h, request, isAuthError, data, side, onDataChanged, onShiftDate, onSaved, onAuth, onEditLists }) {
+export function createShiftForm({ h, request, isAuthError, data, side, derive, onDataChanged, onShiftDate, onSaved, onAuth, onEditLists }) {
   const $ = (id) => document.getElementById(id);
   const root = $('shiftForm'); // every group's pane is inside it
   const INVALID = '#shiftForm [aria-invalid]';
-  const breakList = createBreakList({ h });
+  const breakList = createBreakList({ h, onChange: () => refreshDerived() });
   $('breakHost').append(breakList.el);
   const partyList = createPartyList({ h, onChange: () => { $('fParty').checked = partyList.count() > 0; refreshDerived(); } });
   $('partyHost').append(partyList.el);
   const typeRadios = [...root.querySelectorAll('input[name="shiftType"]')];
+  // The people on the shift are a strip of tabs too: one person's start, end, tips and role open at a time.
+  const crewTabs = createTabs({
+    label: 'People on this shift', addLabel: '+ Add someone', empty: 'No one else is on this shift. Tap a name above, or type one, to add them.',
+    onAdd: () => $('fEmployee').focus(),
+    onSelect(id) { if (ctx) ctx.crew = ctx.staff.find((m) => m.uid === id) ?? ctx.crew; },
+  });
+  $('crewHost').append(crewTabs.el);
+  // Drawn pictures: the Date page's calendar of your shifts, and the shift laid out along the clock on Time, Crew and Party.
+  const pickCalendar = createCalendar({
+    mode: 'pick', data, derive,
+    selected: () => $('fDate').value,
+    exclude: () => ctx?.id ?? null,
+    onPick(date) {
+      $('fDate').value = date;
+      if (ctx) ctx.startDelta = 0;
+      $('fDate').dispatchEvent(new Event('input', { bubbles: true })); // the form's own listeners take it from here
+    },
+  });
+  $('dateCal').append(pickCalendar.el);
+  const ribbons = { time: createRibbon({ layers: ['breaks'] }), crew: createRibbon({ layers: ['crew'] }), party: createRibbon({ layers: ['parties'] }) };
+  $('timeRibbon').append(ribbons.time.el);
+  $('crewRibbon').append(ribbons.crew.el);
+  $('partyRibbon').append(ribbons.party.el);
 
   // One open form: { mode, id, orig, opener, startDelta, baseline, saving, armed,
   //                  type: '' | 'day' | 'night' | 'double', entries: [{id, category_id, value, part, el}],
-  //                  staff: [{employee_id: string|null, name, start, end, tips, role, detail, sumEl}], crew: the staff member
+  //                  staff: [{employee_id: string|null, name, start, end, tips, role, detail, uid}], crew: the staff member
   //                  shown in the Crew tab, loadedLocation: {id, name} | null }
   // An entry's `part` ('', 'day' or 'night') only matters on a double; '' is "combined / not sure".
   // A staff member with a null employee_id is a name typed in that isn't on the employees table yet.
@@ -290,13 +326,13 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
     return localDate(new Date().getHours() < 6 ? -1 : 0); // logging the night you just finished
   }
 
-  function openNew(openerSel) {
+  function openNew(openerSel, { date } = {}) {
     const last = newestLive();
     ctx = { mode: 'new', id: newId(), orig: null, opener: openerSel, baseline: null, startDelta: 0, type: '', entries: [newEntry()], staff: [], crew: null, loadedLocation: null };
     const lastPlace = last?.location_id && data.locations.get(last.location_id);
     show({
       title: 'New shift',
-      date: defaultDate(),
+      date: date ?? defaultDate(),
       start: last ? timeOf(last.start_at) : '',
       end: last ? timeOf(last.end_at) : '',
       location: lastPlace && !lastPlace.archived ? lastPlace.name : '',
@@ -352,16 +388,19 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
     $('saveShift').textContent = ctx.orig?.deleted_at ? 'Save and restore' : 'Save shift';
     side.setMode('edit', { title: v.title, show: 'date' });
     window.scrollTo({ top: 0 });
-    $('fDate').focus();
+    pickCalendar.focus();
   }
 
   // ---- date ---------------------------------------------------------------------------
-  for (const btn of root.querySelectorAll('[data-days]')) {
-    btn.addEventListener('click', () => {
-      $('fDate').value = localDate(Number(btn.dataset.days));
-      $('fDate').removeAttribute('aria-invalid');
-      if (ctx) ctx.startDelta = 0;
-    });
+  const LONG_DATE = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  function paintDate(date) {
+    const note = $('dateNote');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { note.textContent = 'Pick a day on the calendar.'; note.classList.remove('warn'); return; }
+    const [y, m, d] = date.split('-').map(Number);
+    const same = [...data.shifts.values()].filter((s) => !s.deleted_at && s.id !== ctx.id && s.work_date === date);
+    note.classList.toggle('warn', same.length > 0);
+    note.textContent = LONG_DATE.format(new Date(Date.UTC(y, m - 1, d)))
+      + (same.length ? ` · you already logged a ${same.map((s) => TYPE_NAME[s.shift_type].toLowerCase()).join(' and a ')} shift on this date.` : '');
   }
 
   // ---- shift type ---------------------------------------------------------------------
@@ -472,28 +511,39 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
     return member && !member.employee_id ? member.role || null : data.employees.get(id)?.role ?? null;
   };
 
+  // Everything on the form that is worked out from what has been entered. The drawn parts (tiles, ribbons, charts) are only
+  // rebuilt for the page on show; the tab summaries and the wage line are always current.
+  let history = null;
+  const liveShifts = () => [...data.shifts.values()].filter((s) => !s.deleted_at);
+  // Your other shifts, summed once per refresh and only if a page needs them.
+  const past = () => (history ??= summarize(liveShifts(), derive, { exclude: ctx.id }));
+
   function refreshDerived() {
     if (!ctx) return;
+    history = null;
     const box = $('wageLine');
-    const totals = $('staffTotals');
     const date = $('fDate').value;
+    const shown = side.current();
     onShiftDate?.(/^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null); // the wage range that applies is marked on the Wage page
+    if (shown === 'date') { paintDate(date); pickCalendar.show(date); }
+    if (shown === 'type') paintTypeHistory();
     const startMin = toMinutes($('fStart').value);
     const endMin = toMinutes($('fEnd').value);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || startMin === null || endMin === null) {
-      totals.hidden = true;
       paintSummaries(null);
+      paintVisuals(shown, null);
       return box.replaceChildren(h('span', { class: 'muted' }, 'Enter the date and times to see an estimate.'));
     }
     const S = joinLocal(addDays(date, ctx.startDelta), startMin);
     const E = resolveEnd(S, $('fEnd').value);
     const r = breakList.read({ S, E });
+    const pr = partyList.read({ S, E });
     const money_entries = ctx.entries
       .map((e) => ({ category_id: e.category_id, value_cents: parseDollars(e.value) }))
       .filter((m) => m.value_cents !== null);
     const d = deriveShift({
       work_date: date, start_at: S, end_at: E, breaks: r.problems.length ? [] : r.value, money_entries,
-      employees: ctx.staff.map((m) => staffDoc(m, S, E)),
+      employees: ctx.staff.map((m) => staffDoc(m, S, E)), parties: pr.value,
     }, [...data.wageRates.values()], roleOf);
 
     if (d.estimated_wage_cents === null) {
@@ -505,14 +555,143 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
         h('span', { class: 'wageamt' }, usd(d.estimated_wage_cents)),
         h('span', { class: 'muted' }, `${hoursText(d.paid_minutes)} paid × ${usd(d.wage_rate_cents)}/hr, breaks unpaid`));
     }
-
-    totals.hidden = ctx.staff.length === 0;
-    if (ctx.staff.length) {
-      totals.replaceChildren(
-        h('span', { class: 'wageamt' }, `${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'} · ${hoursText(d.bartender_minutes)}`),
-        h('span', { class: 'muted' }, `staff tips ${usd(d.staff_tips_cents)}` + (d.staff_tips_per_bartender_hour_cents === null ? '' : ` · ${usd(d.staff_tips_per_bartender_hour_cents)} per bartender hour`)));
-    }
     paintSummaries(d);
+    paintVisuals(shown, { d, S, E, breaks: r.problems.length ? [] : r.value, parties: pr.problems.length ? [] : pr.value });
+  }
+
+  // ---- the numbers and pictures on each page ---------------------------------------------------------
+  const perHourText = (cents) => (cents == null ? '—' : `${usd0(cents)}/hr`);
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+  function paintVisuals(shown, v) {
+    if (shown === 'time') paintTime(v);
+    else if (shown === 'tips') paintTips(v);
+    else if (shown === 'wage') paintIncome(v);
+    else if (shown === 'misc') paintMisc(v);
+    else if (shown === 'location') paintPlaces();
+    else if (shown === 'crew') paintLabour(v);
+    else if (shown === 'party') paintParty(v);
+  }
+
+  // Time: how long the shift ran, what the breaks took off it, and the shift drawn along the clock.
+  function paintTime(v) {
+    if (!v) {
+      $('timeTiles').replaceChildren();
+      return ribbons.time.update();
+    }
+    const elapsed = wallMinutes(v.S, v.E);
+    const off = elapsed - v.d.paid_minutes;
+    $('timeTiles').replaceChildren(tiles([
+      { label: 'Shift length', value: hoursText(elapsed), sub: `${$('fStart').value} to ${$('fEnd').value}` },
+      { label: 'Breaks', value: off ? hoursText(off) : 'None', sub: v.breaks.length ? plural(v.breaks.length, 'break') + ', unpaid' : 'nothing comes off' },
+      { label: 'Time worked', value: hoursText(v.d.paid_minutes), sub: 'what your hourly figures use', lead: true },
+    ], { label: 'Time on this shift' }));
+    ribbons.time.update({ S: v.S, E: v.E, breaks: v.breaks });
+  }
+
+  // Type: what each type has paid you before, so the choice has some context.
+  function paintTypeHistory() {
+    for (const el of root.querySelectorAll('[data-hist]')) {
+      const b = past().byType[el.dataset.hist];
+      el.textContent = b?.n ? `${plural(b.n, 'shift')} · ${perHourText(tipsPerHour(b))} in tips` : 'No shifts yet';
+    }
+  }
+
+  const tipCents = () => ctx.entries.filter(isTips).reduce((a, e) => a + (parseDollars(e.value) ?? 0), 0);
+
+  // Tips: this shift's total and rate against your average, split by half on a double, and your last few shifts beside it.
+  function paintTips(v) {
+    const total = tipCents();
+    const minutes = v?.d.paid_minutes ?? 0;
+    const rate = perHour(total, minutes);
+    const avg = tipsPerHour(past().all);
+    const entered = ctx.entries.filter((e) => isTips(e) && parseDollars(e.value)).length;
+    const items = [{ label: 'Tips', value: total ? usd(total) : '—', sub: entered ? `${entered} ${entered === 1 ? 'entry' : 'entries'}` : 'nothing entered yet' }];
+    items.push({
+      label: 'Per hour worked', value: perHourText(rate), lead: true,
+      sub: rate == null || avg == null ? (minutes ? '' : 'needs the times') : `${rate >= avg ? '+' : '−'}${usd0(Math.abs(rate - avg))} against your ${usd0(avg)} average`,
+    });
+    if (ctx.type === 'double') {
+      for (const part of ['day', 'night']) {
+        const cents = ctx.entries.filter((e) => isTips(e) && e.part === part).reduce((a, e) => a + (parseDollars(e.value) ?? 0), 0);
+        items.push({ label: `${TYPE_NAME[part]} half`, value: cents ? usd0(cents) : '—' });
+      }
+    }
+    $('tipTiles').replaceChildren(tiles(items, { label: 'Tips on this shift' }));
+    const recent = past().rows.filter((r) => r.d.tips_per_hour_cents != null).slice(-8);
+    const data8 = recent.map(({ s, d }) => ({ xlabel: shortDate(s.work_date).replace(/^\w+, /, ''), title: `${shortDate(s.work_date)} · ${TYPE_NAME[s.shift_type]}`, parts: [{ value: d.tips_per_hour_cents / 100, cls: 'k-' + s.shift_type, name: 'Tips per hour' }] }));
+    if (rate != null && total > 0) data8.push({ xlabel: 'This', title: 'This shift', on: true, parts: [{ value: rate / 100, cls: 'k-' + (ctx.type || 'acc'), name: 'Tips per hour' }] });
+    $('tipChart').replaceChildren(columnChart({ title: 'Tips per hour, your last shifts', sub: 'this shift is outlined', data: data8, fmt: (c) => usd0(c * 100), height: 120, empty: 'Enter tips and the times to compare this shift with your last ones.' }));
+  }
+
+  // Wage page: the whole shift's income, and where it came from.
+  function paintIncome(v) {
+    if (!v) { $('incomeTiles').replaceChildren(); return $('incomeMix').replaceChildren(); }
+    const { d } = v;
+    $('incomeTiles').replaceChildren(tiles([
+      { label: 'Total income', value: usd0(d.total_income_cents), sub: d.estimated_wage_cents === null ? 'without wage: no rate applies' : 'tips + wage + misc', lead: true },
+      { label: 'Per hour worked', value: perHourText(d.total_per_hour_cents), sub: `over ${hoursText(d.paid_minutes)}` },
+      { label: 'Wage rate', value: d.wage_rate_cents == null ? '—' : `${usd(d.wage_rate_cents)}/hr` },
+    ], { label: 'Income on this shift' }));
+    $('incomeMix').replaceChildren(incomeMix({ tips: d.tips_cents, wage: d.estimated_wage_cents, other: d.other_income_cents }));
+  }
+
+  // Misc: the total and what each type came to.
+  function paintMisc(v) {
+    const byType = new Map();
+    for (const e of ctx.entries) {
+      const cents = parseDollars(e.value);
+      if (!cents || isTips(e)) continue;
+      byType.set(e.category_id, (byType.get(e.category_id) ?? 0) + cents);
+    }
+    if (!byType.size) return $('miscTiles').replaceChildren();
+    const total = [...byType.values()].reduce((a, c) => a + c, 0);
+    $('miscTiles').replaceChildren(tiles([
+      { label: 'Misc income', value: usd(total), sub: v ? perHourText(perHour(total, v.d.paid_minutes)) + ' worked' : '', lead: true },
+      ...[...byType].slice(0, 3).map(([id, cents]) => ({ label: data.incomeCategories.get(id)?.name ?? 'Misc', value: usd(cents) })),
+    ], { label: 'Misc income on this shift' }));
+  }
+
+  // Location: how the places you work compare, with the one typed here marked.
+  function paintPlaces() {
+    const typed = $('fLocation').value.trim();
+    const rows = [...past().byLocation].map(([id, b]) => ({ name: data.locations.get(id)?.name ?? 'Removed place', b })).sort((a, b) => b.b.n - a.b.n).slice(0, 6);
+    const known = rows.some((r) => sameName(r.name, typed));
+    $('placeStats').replaceChildren(...[hbars({
+      title: 'Tips per hour by place', sub: 'your most-worked places', fmt: (c) => usd0(c),
+      empty: 'Once your shifts have locations, the places are compared here.',
+      data: rows.map(({ name, b }) => ({ label: name, note: String(b.n), value: tipsPerHour(b), cls: 'k-acc', on: sameName(name, typed), title: `${name}: ${usd(b.tips)} tips over ${hours1(b.minutes)}, ${plural(b.n, 'shift')}` })),
+    }), typed && !known ? h('p', { class: 'muted' }, `${typed} isn’t on your list yet. It is added when you save.`) : null].filter(Boolean));
+  }
+
+  // Crew: the labour on the shift, and each person drawn against yours.
+  function paintLabour(v) {
+    const totals = $('staffTotals');
+    if (!v || !ctx.staff.length) {
+      totals.replaceChildren(h('p', { class: 'muted' }, ctx.staff.length ? 'Enter the date and times to see the totals.' : 'Just you so far. Add the people who worked to see the labour and staff tips.'));
+    } else {
+      const { d } = v;
+      totals.replaceChildren(tiles([
+        { label: plural(d.bartender_count, 'bartender'), value: hoursText(d.bartender_minutes), sub: 'combined hours', lead: true },
+        { label: 'Staff tips', value: usd0(d.staff_tips_cents), sub: 'everyone’s, yours included' },
+        { label: 'Per bartender hour', value: perHourText(d.staff_tips_per_bartender_hour_cents) },
+      ], { label: 'Staff on this shift' }));
+    }
+    ribbons.crew.update(v ? { S: v.S, E: v.E, crew: ctx.staff.map((m) => ({ name: m.name, ...staffDoc(m, v.S, v.E) })) } : undefined);
+  }
+
+  // Party: how many, how many guests, and when.
+  function paintParty(v) {
+    $('partySection').hidden = partyList.count() === 0;
+    if (!v) { $('partyTiles').replaceChildren(); return ribbons.party.update(); }
+    const guests = v.parties.reduce((a, p) => a + (p.guests ?? 0), 0);
+    const minutes = v.parties.reduce((a, p) => a + (p.start_at ? wallMinutes(p.start_at, p.end_at) : 0), 0);
+    $('partyTiles').replaceChildren(tiles([
+      { label: 'Parties', value: String(v.parties.length), lead: true },
+      { label: 'Guests', value: guests ? String(guests) : '—' },
+      { label: 'Party time', value: minutes ? hoursText(minutes) : '—' },
+    ], { label: 'Parties on this shift' }));
+    ribbons.party.update({ S: v.S, E: v.E, parties: v.parties });
   }
   root.addEventListener('click', refreshDerived); // a break added or removed, a Today button...
 
@@ -560,39 +739,25 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
   }
 
   const clock = (hhmm) => { const [hh, mm] = hhmm.split(':').map(Number); return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`; };
-  const crewSummary = (m) => {
+  // The line under a person's tab: their hours and tips ("8h · $40"), or "no times".
+  const crewSub = (m) => {
     const cents = m.tips.trim() === '' ? null : parseDollars(m.tips);
-    return [m.start && m.end ? `${clock(m.start)} → ${clock(m.end)}` : 'no times', cents === null ? '' : usd(cents)].filter(Boolean).join(' · ');
+    const s = toMinutes(m.start);
+    const e = toMinutes(m.end);
+    const worked = s !== null && e !== null ? hoursText((e - s + 1440) % 1440 || 1440) : 'no times';
+    return [worked, cents === null ? '' : usd0(cents)].filter(Boolean).join(' · ');
   };
   const roleText = (m) => (m.employee_id ? data.employees.get(m.employee_id)?.role : m.role) ?? '';
+  let crewSerial = 0;
 
-  // Redraw the summary rows and show the picked person's detail (the others stay built, but hidden).
+  // Redraw the strip of tabs (one per person on the shift) with the picked person's detail open.
   function paintCrew() {
     if (!ctx.staff.includes(ctx.crew)) ctx.crew = ctx.staff[0] ?? null; // always someone picked while anyone is on the shift
-    for (const m of ctx.staff) m.detail ??= buildDetail(m);
+    for (const m of ctx.staff) { m.uid ??= ++crewSerial; m.detail ??= buildDetail(m); }
     for (const m of ctx.staff) m.paintRole();
-    $('staffRows').replaceChildren(...ctx.staff.map(staffRowEl));
-    $('crewDetails').replaceChildren(...ctx.staff.map((m) => { m.detail.hidden = m !== ctx.crew; return m.detail; }));
-    $('crewEmpty').hidden = ctx.staff.length > 0;
+    crewTabs.setItems(ctx.staff.map((m) => ({ id: m.uid, label: m.name, sub: crewSub(m), panel: m.detail })), { select: ctx.crew?.uid });
     const roles = new Set([...SUGGESTED_ROLES, ...[...data.employees.values()].map((e) => e.role).filter(Boolean)]);
     $('crewRoleList').replaceChildren(...[...roles].sort().map((r) => h('option', { value: r })));
-  }
-
-  // The form's line for one person: who, and their times and tips in a few words. Tapping it opens their detail.
-  function staffRowEl(m) {
-    const on = m === ctx.crew;
-    m.sumEl = h('span', { class: 'muted' }, crewSummary(m));
-    const pick = h('button', { type: 'button', class: 'crewpick', 'aria-pressed': String(on) }, h('span', { class: 'sname' }, m.name), m.sumEl);
-    pick.addEventListener('click', () => selectCrew(m, { focus: true }));
-    const remove = h('button', { type: 'button', class: 'linkbtn x', 'aria-label': `Take ${m.name} off this shift` }, '✕');
-    remove.addEventListener('click', () => removeStaff(m));
-    return h('div', { class: 'crewrow' + (on ? ' on' : ''), role: 'group', 'aria-label': m.name }, pick, remove);
-  }
-
-  function selectCrew(m, { focus = false } = {}) {
-    ctx.crew = m;
-    paintCrew();
-    if (focus) m.el.start.focus();
   }
 
   function removeStaff(m) {
@@ -614,7 +779,7 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
     end.value = m.end;
     tips.value = m.tips;
     for (const [input, key] of [[start, 'start'], [end, 'end'], [tips, 'tips']]) {
-      input.addEventListener('input', () => { m[key] = input.value; input.removeAttribute('aria-invalid'); m.sumEl.textContent = crewSummary(m); });
+      input.addEventListener('input', () => { m[key] = input.value; input.removeAttribute('aria-invalid'); crewTabs.setSub(m.uid, crewSub(m)); });
     }
     m.el = { start, end, tips, role };
     m.paintRole = () => { // also runs when the people list changes elsewhere; a role being typed is left alone
@@ -646,15 +811,14 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
     const remove = h('button', { type: 'button', class: 'btn btn-danger' }, 'Take off this shift');
     remove.addEventListener('click', () => removeStaff(m));
     const field = (label, input) => h('label', { class: 'field' }, label, input);
-    return h('div', { class: 'crewdetail', role: 'group', 'aria-label': m.name },
-      h('h3', { class: 'crewname' }, m.name),
+    return h('div', { class: 'crewdetail' },
       h('div', { class: 'timepair' }, field('Start', start), h('span', { class: 'to', 'aria-hidden': 'true' }, '→'), field('End', end)),
       field('Tips they made', tips), field('Role', role), hint, msg,
       h('div', null, remove));
   }
 
   // Someone joins the shift. Their times start as yours (most people work the same hours), and are theirs to change.
-  const newStaff = (employee_id, name) => ({ employee_id, name, start: $('fStart').value, end: $('fEnd').value, tips: '', role: '', el: null });
+  const newStaff = (employee_id, name) => ({ employee_id, name, start: $('fStart').value, end: $('fEnd').value, tips: '', role: '', el: null, uid: ++crewSerial });
 
   function toggleStaff(member) {
     const at = ctx.staff.findIndex((m) => sameName(m.name, member.name));
@@ -687,7 +851,6 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
   $('fParty').addEventListener('change', () => { partyList.setPresent($('fParty').checked); refreshDerived(); });
 
   // ---- the live line under each tab ---------------------------------------------------------
-  const usd0 = (cents) => (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   const TYPE_LABEL = { day: 'Day', night: 'Night', double: 'Double' };
   const DAY = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   const dayLabel = (date) => { const [y, m, d] = date.split('-').map(Number); return DAY.format(new Date(Date.UTC(y, m - 1, d))); };
@@ -723,10 +886,11 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
   function syncFlags() {
     const names = new Set();
     for (const el of document.querySelectorAll(INVALID)) {
-      const name = el.closest('[role="tabpanel"]')?.dataset.tab;
+      const name = el.closest('[role="tabpanel"][data-tab]')?.dataset.tab;
       if (name) names.add(name);
     }
     side.flag(names);
+    for (const tabs of [breakList.tabs, partyList.tabs, crewTabs]) tabs.flag();
   }
 
   // ---- reading the form --------------------------------------------------------------
@@ -907,10 +1071,8 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
   }
   // A problem in a field on another tab: bring that tab up, on the right person if it is a crew member's.
   function revealProblem(el) {
-    const holder = el?.closest?.('.crewdetail');
-    const member = holder && ctx.staff.find((m) => m.detail === holder);
-    if (member && member !== ctx.crew) selectCrew(member);
     side.reveal(el);
+    for (const tabs of [breakList.tabs, partyList.tabs, crewTabs]) if (tabs.reveal(el)) break;   // and the break, party or person it is in
   }
   function showBanner(text) {
     $('formBanner').textContent = text;
@@ -925,11 +1087,12 @@ export function createShiftForm({ h, request, isAuthError, data, side, onDataCha
     const opener = ctx.opener;
     disarm();
     ctx = null;
-    side.setMode('browse', { show: 'shifts' });
+    side.setMode('browse'); // back to the page you came from
     onShiftDate?.(null);
     if (opener) document.querySelector(opener)?.focus();
   }
 
+  document.addEventListener('sidepaint', () => { if (ctx) refreshDerived(); }); // a page was switched to: draw its numbers now
   $('shiftForm').addEventListener('submit', (ev) => { ev.preventDefault(); save(); });
   $('cancelForm').addEventListener('click', close);
   $('closeForm').addEventListener('click', close);
