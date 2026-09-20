@@ -5,8 +5,7 @@
 //   Info     Date, Time, Type
 //   Income   Tips, Wage, Misc
 //   Details  Location, Crew, Party, Notes
-// The lists are not a group of their own while editing: each one is on the page it feeds (locations on Location, misc
-// types on Misc, wage rates on Wage), so what a shift points at is edited where it is used, without leaving the form.
+// The lists (locations, misc types, wage rates) are not in the form: they are edited under Lists while browsing.
 // The long form is never one scroll and nothing pops up; every page is one click away, or a Back / Next away, and the
 // form's state is kept while another page is open. Each editing tab carries a live one-line summary and a dot when a
 // field on it has a problem.
