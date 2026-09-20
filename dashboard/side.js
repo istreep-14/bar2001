@@ -1,5 +1,6 @@
 // The left panel of the shifts view: tabbed navigation in section groups, with the selected page's input in the panel
-// to its right. Browsing has Browse (Shifts, Live feed) and Lists (Locations, Misc types, Wage rates). Editing a shift
+// to its right. Browsing has Browse (Overview, Calendar, Shifts, Live feed) and Lists (Locations, Misc types, Wage
+// rates); going back to browsing from a shift lands on the page you were on. Editing a shift
 // has a group per part of it, and a page per thing in the group:
 //   Info     Date, Time, Type
 //   Income   Tips, Wage, Misc
@@ -16,7 +17,7 @@
 const LISTS = ['listLocations', 'listTypes', 'listRates'];
 const STEPS = ['date', 'time', 'type', 'tips', 'wage', 'misc', 'location', 'crew', 'party', 'notes']; // the order Back / Next walk
 const MODES = {
-  browse: ['shifts', 'feed', ...LISTS],
+  browse: ['overview', 'calendar', 'shifts', 'feed', ...LISTS],
   edit: STEPS,
 };
 
@@ -27,7 +28,8 @@ export function createSidePanel() {
   const byName = new Map(tabs.map((t) => [t.dataset.tab, t]));
   const paneOf = (name) => document.getElementById('pane' + name[0].toUpperCase() + name.slice(1));
   let mode = 'browse';
-  let current = 'shifts';
+  let current = 'overview';
+  let lastBrowse = 'overview'; // the browse page to come back to after editing a shift
 
   function paint() {
     document.body.dataset.mode = mode;
@@ -40,6 +42,7 @@ export function createSidePanel() {
       tab.tabIndex = on ? 0 : -1;
       paneOf(name).hidden = !on;
     }
+    if (mode === 'browse') lastBrowse = current;
     for (const group of groups) group.hidden = [...group.querySelectorAll('[role="tab"]')].every((t) => t.hidden);
     // the first page has no Back and the last no Next
     STEPS.forEach((name, i) => {
@@ -47,6 +50,7 @@ export function createSidePanel() {
       pane.querySelector('[data-step="-1"]').hidden = i === 0;
       pane.querySelector('[data-step="1"]').hidden = i === STEPS.length - 1;
     });
+    document.dispatchEvent(new CustomEvent('sidepaint')); // pages that draw only while shown (Overview, Calendar) catch up
   }
 
   const api = {
@@ -55,9 +59,10 @@ export function createSidePanel() {
       mode = next;
       document.getElementById('navTitle').textContent = title;
       if (show && MODES[mode].includes(show)) current = show;
-      else if (!MODES[mode].includes(current)) current = MODES[mode][0];
+      else if (!MODES[mode].includes(current)) current = mode === 'browse' ? lastBrowse : MODES[mode][0];
       paint();
     },
+    current: () => current,
     // Is this tab part of the current mode?
     has: (name) => MODES[mode].includes(name),
     show(name) {
@@ -75,7 +80,7 @@ export function createSidePanel() {
     },
     // Show the tab that holds `el` (a field with a problem, say).
     reveal(el) {
-      const name = el?.closest?.('[role="tabpanel"]')?.dataset.tab;
+      const name = el?.closest?.('[role="tabpanel"][data-tab]')?.dataset.tab; // the page, not a break's or a party's own tab panel inside it
       if (name) api.show(name);
     },
     // The live line under a tab's name.

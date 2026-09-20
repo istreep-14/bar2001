@@ -28,6 +28,11 @@ const BROWSER_FILES = {
   '/lists.js': { file: join(ROOT, 'dashboard', 'lists.js'), type: JS },
   '/employees.js': { file: join(ROOT, 'dashboard', 'employees.js'), type: JS },
   '/side.js': { file: join(ROOT, 'dashboard', 'side.js'), type: JS },
+  '/viz.js': { file: join(ROOT, 'dashboard', 'viz.js'), type: JS },
+  '/insights.js': { file: join(ROOT, 'dashboard', 'insights.js'), type: JS },
+  '/tabs.js': { file: join(ROOT, 'dashboard', 'tabs.js'), type: JS },
+  '/calendar.js': { file: join(ROOT, 'dashboard', 'calendar.js'), type: JS },
+  '/overview.js': { file: join(ROOT, 'dashboard', 'overview.js'), type: JS },
   '/styles.css': { file: join(ROOT, 'dashboard', 'styles.css'), type: 'text/css; charset=utf-8' },
   ...Object.fromEntries([400, 500, 600, 700].map((w) => [`/fonts/poppins-${w}.woff2`, { file: join(ROOT, 'dashboard', 'fonts', `poppins-${w}.woff2`), type: FONT, immutable: true }])),
 };
