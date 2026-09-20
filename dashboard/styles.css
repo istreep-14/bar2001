@@ -200,7 +200,18 @@ td.num .sub { font-variant-numeric: tabular-nums; }
 .badge-night { background: var(--night-soft); color: var(--night); }
 .badge-double { background: var(--double-soft); color: var(--double); }
 .badge-party { background: var(--party-soft); color: var(--party); }
-tr.raw td { background: var(--field); }
+tr.shift:has(+ tr.detail) td { border-bottom: 0; }
+tr.detail td { padding: var(--sp-2) var(--sp-4) var(--sp-4); background: var(--field); }
+.facts-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px var(--sp-5); margin: 0 0 var(--sp-3); font-size: var(--fs-small); }
+.facts-grid dt { font-weight: 500; color: var(--muted); }
+.facts-grid dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+/* a month heading: its name, and what it came to */
+tr.month th { padding: var(--sp-4) var(--sp-4) var(--sp-2); border-bottom: 1px solid var(--line); font-size: var(--fs-body); letter-spacing: 0; text-transform: none; white-space: normal; color: var(--muted); }
+tbody tr.month:first-child th { padding-top: var(--sp-3); }
+.mname { font-size: var(--fs-heading); font-weight: 600; color: var(--ink); }
+.msum { margin-left: var(--sp-3); font-size: var(--fs-small); font-weight: 400; font-variant-numeric: tabular-nums; }
+.icon-btn svg { transition: transform .12s; }
+.icon-btn.on svg { transform: rotate(180deg); }
 pre { margin: 0; font: 12px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; }
 .tablenote { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); }
 
@@ -290,8 +301,8 @@ ol.feed li.old { opacity: .6; }
 .mrow .x { padding: var(--sp-2); font-size: var(--fs-body); text-decoration: none; }
 
 /* the estimated wage: worked out, not typed, so it looks like a result rather than a field */
-.derived { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px dashed var(--line-strong); border-radius: var(--radius-m); background: var(--accent-soft); }
-.derived .wageamt { font-size: var(--fs-title); font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.derived { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
+.derived .wageamt { font-size: 18px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
 
 /* ---- employees: the roster (main tier) and the selected person (side tier) ------------------- */
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--sp-5); align-items: start; }
@@ -373,6 +384,25 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
 .tile.lead { border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); background: var(--accent-soft); }
 .tile.lead dd { font-size: 30px; }
 .pane-body.wide .tile.lead { grid-column: span 2; }
+
+/* ---- facts: a quiet line of small figures under an input --------------------------------------------------------- */
+.facts { display: flex; flex-wrap: wrap; gap: 2px var(--sp-4); margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--muted); }
+.facts:empty { display: none; }
+.fact b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fact .fn { font-weight: 500; }
+.fact.up .fn { color: var(--good); }
+.fact.down .fn { color: var(--warn); }
+/* the slim shift ribbon: a thin track, no legend */
+.ribbon.slim .ltrack { height: 8px; }
+.ribbon.slim .lane { gap: var(--sp-2); }
+.ribbon.slim .lanes { gap: 6px; padding-top: var(--sp-1); }
+.ribbon.slim .ltrack > i { border-radius: 4px; }
+.ribbon.slim .ltrack .seg-break { top: -2px; bottom: -2px; }
+.ribbon.slim .ltrack .seg-party { top: -3px; bottom: -3px; padding: 0 var(--sp-1); font-size: 10px; }
+.ribbon.slim .ltrack .seg-crew { top: 0; bottom: 0; }
+.ribbon.slim .lname, .ribbon.slim .tick { font-size: 10px; }
+.ribbon.slim .lane.ticks .ltrack { height: 12px; }
+.ribbon.slim .lanes { padding-bottom: 0; }
 
 /* ---- charts: HTML laid out in percentages, so they reflow with their card ------------------------------------- */
 .viz { position: relative; display: grid; gap: var(--sp-3); min-width: 0; margin: 0; }
@@ -551,20 +581,22 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
   /* each shift becomes a card: date and actions on the first line, the time under it, then the four money figures in one row */
   table, tbody { display: block; }
   thead { display: none; }
-  tr.shift { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+  tr.shift { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
   tr.shift td { display: block; padding: 0; border: 0; text-align: left; }
-  tr.shift td:nth-child(1) { grid-column: 1 / span 2; grid-row: 1; }
-  tr.shift td:nth-child(8) { grid-column: 3 / span 2; grid-row: 1; width: auto; padding: 0; }
-  tr.shift td:nth-child(7) { grid-column: 1 / -1; }
+  tr.shift td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  tr.shift td:nth-child(5) { grid-column: 2; grid-row: 1; width: auto; padding: 0; }
   tr.shift td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
   tr.shift td.num { text-align: left; }
   tr.shift td.num .sub { justify-content: flex-start; font-size: 11px; }
   tr.shift td.num .amt { font-size: 13px; }
   tr.shift td[data-label]::before { content: attr(data-label); display: block; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  tr.raw, tr.raw td { display: block; }
-  tr.raw td { padding: var(--sp-4); border-bottom: 1px solid var(--line); }
+  tr.detail, tr.detail td, tr.month, tr.month th { display: block; }
+  tr.detail td { padding: var(--sp-3) var(--sp-4) var(--sp-4); border-bottom: 1px solid var(--line); }
+  tr.month th { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
+  .msum { display: block; margin: 0; }
+  .facts-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .facts-grid dd { margin-bottom: var(--sp-2); }
   .icon-btn { min-width: 40px; height: 40px; }
-  tr.shift td.none { display: none; }
   .toolbar { flex-wrap: wrap; }
   .toolbar .check { flex: 1 0 100%; }
   .toolbar .btn { flex: 1; }

@@ -1,7 +1,6 @@
-// The lists behind the shift form: locations, misc types (the other-income kinds) and wage rates. Each is edited on the
-// page it feeds while a shift is open (locations on Location, misc types on Misc, wage rates on Wage), and on a page of
-// its own in the Lists group while browsing. An editor is built into every element marked data-list, so the same code
-// serves both. Add, rename and remove the names the form offers as autofill, and edit the wage history, which reads as
+// The lists behind the shift form: locations, misc types (the other-income kinds) and wage rates. Each is edited on a page
+// of its own in the Lists group while browsing (the shift form doesn't hold them). An editor is built into every element
+// marked data-list. Add, rename and remove the names the form offers as autofill, and edit the wage history, which reads as
 // date ranges: a rate applies from its start date until the day before the next one starts, and the range that applies
 // to the shift being edited is marked. Everything goes through the public API, and the rows it changes are put into
 // `data` straight away so the form and the shift table update without waiting for the live feed.

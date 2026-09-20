@@ -74,6 +74,15 @@ export function tiles(items, { label } = {}) {
       t.sub ? h('div', { class: 'sub' }, t.sub) : null)));
 }
 
+// ---- facts: a quiet line of small figures, for pages where the input is the point ---------------------------------
+// items: [{ label, value, note?, tone?: 'up' | 'down', hint? }]. A tone adds an arrow to its note, so direction never
+// depends on colour alone.
+export function facts(items) {
+  return h('ul', { class: 'facts' }, ...items.filter(Boolean).map((f) => h('li', { class: 'fact' + (f.tone ? ' ' + f.tone : ''), title: f.hint },
+    h('span', { class: 'fk' }, f.label), ' ', h('b', null, f.value),
+    f.note ? h('span', { class: 'fn' }, ' ' + (f.tone === 'up' ? '▲ ' : f.tone === 'down' ? '▼ ' : '') + f.note) : null)));
+}
+
 // ---- tooltip: one per chart, values first, then what they are -------------------------------------
 function makeTip(host) {
   const tip = h('div', { class: 'viztip', role: 'tooltip', hidden: true });
@@ -223,8 +232,9 @@ export function incomeMix({ tips, wage, other }) {
 // page it is on) a lane for parties and a lane per crew member. Positions come straight from the same resolved
 // 'YYYY-MM-DDTHH:MM' times the form saves.
 //   update({ S, E, breaks: [{start_at, end_at} | {minutes}], parties: [{name, start_at, end_at}], crew: [{name, start_at, end_at}] })
-export function createRibbon({ layers = [] } = {}) {
-  const el = h('figure', { class: 'viz ribbon' });
+// `slim` is the quiet version for the form: a thin track and no legend (the bars say what they are when hovered).
+export function createRibbon({ layers = [], slim = false } = {}) {
+  const el = h('figure', { class: 'viz ribbon' + (slim ? ' slim' : '') });
   const clock = (t) => { const [hh, mm] = t.slice(11, 16).split(':').map(Number); return clockText(hh, mm); };
   function update({ S = null, E = null, breaks = [], parties = [], crew = [] } = {}) {
     if (!S || !E) return void el.replaceChildren(h('div', { class: 'viz-empty muted' }, 'Enter the start and end times to see the shift laid out.'));
@@ -267,14 +277,15 @@ export function createRibbon({ layers = [] } = {}) {
     if (layers.includes('breaks')) key.push(['seg-break', 'Break (unpaid)']);
     if (layers.includes('parties')) key.push(['seg-party', 'Party']);
     if (layers.includes('crew')) key.push(['seg-crew', 'Crew']);
-    el.replaceChildren(
+    el.replaceChildren(...[
       h('div', { class: 'ribbon-body', role: 'img', 'aria-label': `Shift from ${clock(S)} to ${clock(E)}` + (placed.length ? `, ${placed.length} break${placed.length === 1 ? '' : 's'}` : '') },
         h('div', { class: 'lanes' },
           h('div', { class: 'vgrid', 'aria-hidden': 'true' }, ...ticks.map((m) => h('i', { style: { left: (m / total) * 100 + '%' } }))),
           ...lanes),
         h('div', { class: 'lane ticks' }, h('span', { class: 'lname' }), h('div', { class: 'ltrack' }, ...ticks.map((m) => h('span', { class: 'tick', style: { left: (m / total) * 100 + '%' } }, hourLabel(m)))))),
-      h('ul', { class: 'legend' }, ...key.map(([cls, name]) => h('li', null, h('i', { class: 'key ' + cls }), name))),
-      ...notes.map((n) => h('p', { class: 'muted' }, n)));
+      slim ? null : h('ul', { class: 'legend' }, ...key.map(([cls, name]) => h('li', null, h('i', { class: 'key ' + cls }), name))),
+      ...notes.map((n) => h('p', { class: 'muted' }, n)),
+    ].filter(Boolean));
   }
   update();
   return { el, update };

@@ -20,7 +20,7 @@ import { SUGGESTED_ROLES } from '/employees.js';
 import { createTabs } from '/tabs.js';
 import { createCalendar } from '/calendar.js';
 import { summarize, tipsPerHour, perHour } from '/insights.js';
-import { tiles, columnChart, hbars, incomeMix, createRibbon, usd0, hours1, shortDate, TYPE_NAME } from '/viz.js';
+import { facts, createRibbon, usd0, TYPE_NAME } from '/viz.js';
 
 const FIELD_LABELS = {
   job_id: 'Job', location_id: 'Location', employees: 'Employees', parties: 'Party', work_date: 'Date', start_at: 'Start', end_at: 'End',
@@ -259,8 +259,8 @@ export function createPartyList({ h, onChange }) {
 
 // `side` is the tabbed left panel (it switches the page between browsing and editing), `onDataChanged` says a
 // person was changed through the form (their role) so the page redraws, `onShiftDate(date | null)` tells the lists which
-// date the shift is on, and `onEditLists(kind)` takes you to where a list is edited ("Set your hourly wage").
-export function createShiftForm({ h, request, isAuthError, data, side, derive, onDataChanged, onShiftDate, onSaved, onAuth, onEditLists }) {
+// date the shift is on. The lists themselves (locations, misc types, wage rates) are not edited here: they live under Lists.
+export function createShiftForm({ h, request, isAuthError, data, side, derive, onDataChanged, onShiftDate, onSaved, onAuth }) {
   const $ = (id) => document.getElementById(id);
   const root = $('shiftForm'); // every group's pane is inside it
   const INVALID = '#shiftForm [aria-invalid]';
@@ -288,7 +288,7 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     },
   });
   $('dateCal').append(pickCalendar.el);
-  const ribbons = { time: createRibbon({ layers: ['breaks'] }), crew: createRibbon({ layers: ['crew'] }), party: createRibbon({ layers: ['parties'] }) };
+  const ribbons = { time: createRibbon({ layers: ['breaks'], slim: true }), crew: createRibbon({ layers: ['crew'], slim: true }), party: createRibbon({ layers: ['parties'], slim: true }) };
   $('timeRibbon').append(ribbons.time.el);
   $('crewRibbon').append(ribbons.crew.el);
   $('partyRibbon').append(ribbons.party.el);
@@ -547,9 +547,7 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     }, [...data.wageRates.values()], roleOf);
 
     if (d.estimated_wage_cents === null) {
-      const set = h('button', { type: 'button', class: 'linkbtn' }, 'Set your hourly wage');
-      set.addEventListener('click', () => onEditLists('wage_rates'));
-      box.replaceChildren(h('span', { class: 'muted' }, 'No hourly wage in effect on this date. '), set);
+      box.replaceChildren(h('span', { class: 'muted' }, 'No hourly wage in effect on this date. Set your rate under Lists after saving.'));
     } else {
       box.replaceChildren(
         h('span', { class: 'wageamt' }, usd(d.estimated_wage_cents)),
@@ -559,9 +557,13 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     paintVisuals(shown, { d, S, E, breaks: r.problems.length ? [] : r.value, parties: pr.problems.length ? [] : pr.value });
   }
 
-  // ---- the numbers and pictures on each page ---------------------------------------------------------
+  // ---- the small figures on each page ------------------------------------------------------------------------
+  // Quiet by design: a line of facts under the input (facts() in viz.js), with an arrow where a figure is being compared, and
+  // the thin ribbon on Time, Crew and Party. Nothing here asks for attention while you are typing.
   const perHourText = (cents) => (cents == null ? '—' : `${usd0(cents)}/hr`);
   const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  // "▲ $6 vs your $29 average" for a rate set against another
+  const versus = (rate, avg, what) => (rate == null || avg == null ? {} : { tone: rate >= avg ? 'up' : 'down', note: `${usd0(Math.abs(rate - avg))} ${rate >= avg ? 'above' : 'below'} ${what} ${usd0(avg)}` });
 
   function paintVisuals(shown, v) {
     if (shown === 'time') paintTime(v);
@@ -573,19 +575,19 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
     else if (shown === 'party') paintParty(v);
   }
 
-  // Time: how long the shift ran, what the breaks took off it, and the shift drawn along the clock.
+  // Time: worked, length, breaks; and the shift along the clock.
   function paintTime(v) {
     if (!v) {
-      $('timeTiles').replaceChildren();
+      $('timeFacts').replaceChildren();
       return ribbons.time.update();
     }
     const elapsed = wallMinutes(v.S, v.E);
     const off = elapsed - v.d.paid_minutes;
-    $('timeTiles').replaceChildren(tiles([
-      { label: 'Shift length', value: hoursText(elapsed), sub: `${$('fStart').value} to ${$('fEnd').value}` },
-      { label: 'Breaks', value: off ? hoursText(off) : 'None', sub: v.breaks.length ? plural(v.breaks.length, 'break') + ', unpaid' : 'nothing comes off' },
-      { label: 'Time worked', value: hoursText(v.d.paid_minutes), sub: 'what your hourly figures use', lead: true },
-    ], { label: 'Time on this shift' }));
+    $('timeFacts').replaceChildren(facts([
+      { label: 'Worked', value: hoursText(v.d.paid_minutes), hint: 'The shift’s length minus breaks: what your hourly figures use' },
+      { label: 'Length', value: hoursText(elapsed) },
+      off ? { label: 'Breaks', value: hoursText(off), hint: 'Unpaid' } : null,
+    ]));
     ribbons.time.update({ S: v.S, E: v.E, breaks: v.breaks });
   }
 
@@ -599,100 +601,90 @@ export function createShiftForm({ h, request, isAuthError, data, side, derive, o
 
   const tipCents = () => ctx.entries.filter(isTips).reduce((a, e) => a + (parseDollars(e.value) ?? 0), 0);
 
-  // Tips: this shift's total and rate against your average, split by half on a double, and your last few shifts beside it.
+  // Tips: the total, the rate, and how that rate sits against your average.
   function paintTips(v) {
     const total = tipCents();
     const minutes = v?.d.paid_minutes ?? 0;
     const rate = perHour(total, minutes);
-    const avg = tipsPerHour(past().all);
-    const entered = ctx.entries.filter((e) => isTips(e) && parseDollars(e.value)).length;
-    const items = [{ label: 'Tips', value: total ? usd(total) : '—', sub: entered ? `${entered} ${entered === 1 ? 'entry' : 'entries'}` : 'nothing entered yet' }];
-    items.push({
-      label: 'Per hour worked', value: perHourText(rate), lead: true,
-      sub: rate == null || avg == null ? (minutes ? '' : 'needs the times') : `${rate >= avg ? '+' : '−'}${usd0(Math.abs(rate - avg))} against your ${usd0(avg)} average`,
-    });
+    const items = [{ label: 'Total', value: total ? usd(total) : '—' }, { label: 'Per hour', value: perHourText(rate), ...versus(rate, tipsPerHour(past().all), 'your') }];
     if (ctx.type === 'double') {
       for (const part of ['day', 'night']) {
         const cents = ctx.entries.filter((e) => isTips(e) && e.part === part).reduce((a, e) => a + (parseDollars(e.value) ?? 0), 0);
-        items.push({ label: `${TYPE_NAME[part]} half`, value: cents ? usd0(cents) : '—' });
+        if (cents) items.push({ label: TYPE_NAME[part], value: usd0(cents) });
       }
     }
-    $('tipTiles').replaceChildren(tiles(items, { label: 'Tips on this shift' }));
-    const recent = past().rows.filter((r) => r.d.tips_per_hour_cents != null).slice(-8);
-    const data8 = recent.map(({ s, d }) => ({ xlabel: shortDate(s.work_date).replace(/^\w+, /, ''), title: `${shortDate(s.work_date)} · ${TYPE_NAME[s.shift_type]}`, parts: [{ value: d.tips_per_hour_cents / 100, cls: 'k-' + s.shift_type, name: 'Tips per hour' }] }));
-    if (rate != null && total > 0) data8.push({ xlabel: 'This', title: 'This shift', on: true, parts: [{ value: rate / 100, cls: 'k-' + (ctx.type || 'acc'), name: 'Tips per hour' }] });
-    $('tipChart').replaceChildren(columnChart({ title: 'Tips per hour, your last shifts', sub: 'this shift is outlined', data: data8, fmt: (c) => usd0(c * 100), height: 120, empty: 'Enter tips and the times to compare this shift with your last ones.' }));
+    $('tipFacts').replaceChildren(facts(total ? items : []));
   }
 
-  // Wage page: the whole shift's income, and where it came from.
+  // Wage page: the whole shift's income.
   function paintIncome(v) {
-    if (!v) { $('incomeTiles').replaceChildren(); return $('incomeMix').replaceChildren(); }
+    if (!v) return $('incomeFacts').replaceChildren();
     const { d } = v;
-    $('incomeTiles').replaceChildren(tiles([
-      { label: 'Total income', value: usd0(d.total_income_cents), sub: d.estimated_wage_cents === null ? 'without wage: no rate applies' : 'tips + wage + misc', lead: true },
-      { label: 'Per hour worked', value: perHourText(d.total_per_hour_cents), sub: `over ${hoursText(d.paid_minutes)}` },
-      { label: 'Wage rate', value: d.wage_rate_cents == null ? '—' : `${usd(d.wage_rate_cents)}/hr` },
-    ], { label: 'Income on this shift' }));
-    $('incomeMix').replaceChildren(incomeMix({ tips: d.tips_cents, wage: d.estimated_wage_cents, other: d.other_income_cents }));
+    $('incomeFacts').replaceChildren(facts([
+      { label: 'Total income', value: usd0(d.total_income_cents), hint: d.estimated_wage_cents === null ? 'Without wage: no rate applies' : 'Tips + wage + misc' },
+      { label: 'Per hour', value: perHourText(d.total_per_hour_cents) },
+      { label: 'Tips', value: usd0(d.tips_cents) },
+      d.other_income_cents ? { label: 'Misc', value: usd0(d.other_income_cents) } : null,
+    ]));
   }
 
-  // Misc: the total and what each type came to.
-  function paintMisc(v) {
+  // Misc: the total, and each type.
+  function paintMisc() {
     const byType = new Map();
     for (const e of ctx.entries) {
       const cents = parseDollars(e.value);
       if (!cents || isTips(e)) continue;
       byType.set(e.category_id, (byType.get(e.category_id) ?? 0) + cents);
     }
-    if (!byType.size) return $('miscTiles').replaceChildren();
-    const total = [...byType.values()].reduce((a, c) => a + c, 0);
-    $('miscTiles').replaceChildren(tiles([
-      { label: 'Misc income', value: usd(total), sub: v ? perHourText(perHour(total, v.d.paid_minutes)) + ' worked' : '', lead: true },
-      ...[...byType].slice(0, 3).map(([id, cents]) => ({ label: data.incomeCategories.get(id)?.name ?? 'Misc', value: usd(cents) })),
-    ], { label: 'Misc income on this shift' }));
+    if (!byType.size) return $('miscFacts').replaceChildren();
+    $('miscFacts').replaceChildren(facts([
+      { label: 'Total', value: usd([...byType.values()].reduce((a, c) => a + c, 0)) },
+      ...(byType.size > 1 ? [...byType].map(([id, cents]) => ({ label: data.incomeCategories.get(id)?.name ?? 'Misc', value: usd(cents) })) : []),
+    ]));
   }
 
-  // Location: how the places you work compare, with the one typed here marked.
+  // Location: how the place typed has done for you, against all your shifts.
   function paintPlaces() {
     const typed = $('fLocation').value.trim();
-    const rows = [...past().byLocation].map(([id, b]) => ({ name: data.locations.get(id)?.name ?? 'Removed place', b })).sort((a, b) => b.b.n - a.b.n).slice(0, 6);
-    const known = rows.some((r) => sameName(r.name, typed));
-    $('placeStats').replaceChildren(...[hbars({
-      title: 'Tips per hour by place', sub: 'your most-worked places', fmt: (c) => usd0(c),
-      empty: 'Once your shifts have locations, the places are compared here.',
-      data: rows.map(({ name, b }) => ({ label: name, note: String(b.n), value: tipsPerHour(b), cls: 'k-acc', on: sameName(name, typed), title: `${name}: ${usd(b.tips)} tips over ${hours1(b.minutes)}, ${plural(b.n, 'shift')}` })),
-    }), typed && !known ? h('p', { class: 'muted' }, `${typed} isn’t on your list yet. It is added when you save.`) : null].filter(Boolean));
+    if (!typed) return $('placeFacts').replaceChildren();
+    const place = [...data.locations.values()].find((l) => !l.archived && sameName(l.name, typed));
+    const b = place && past().byLocation.get(place.id);
+    if (!place) return $('placeFacts').replaceChildren(h('p', { class: 'muted' }, `${typed} isn’t on your list yet. It is added when you save.`));
+    $('placeFacts').replaceChildren(b?.n
+      ? facts([{ label: 'Here before', value: plural(b.n, 'shift') }, { label: 'Tips per hour', value: perHourText(tipsPerHour(b)), ...versus(tipsPerHour(b), tipsPerHour(past().all), 'your') }])
+      : h('p', { class: 'muted' }, 'No shifts here yet.'));
   }
 
-  // Crew: the labour on the shift, and each person drawn against yours.
+  // Crew: the labour on the shift, and each person against your time.
   function paintLabour(v) {
     const totals = $('staffTotals');
     if (!v || !ctx.staff.length) {
-      totals.replaceChildren(h('p', { class: 'muted' }, ctx.staff.length ? 'Enter the date and times to see the totals.' : 'Just you so far. Add the people who worked to see the labour and staff tips.'));
+      totals.replaceChildren();
     } else {
       const { d } = v;
-      totals.replaceChildren(tiles([
-        { label: plural(d.bartender_count, 'bartender'), value: hoursText(d.bartender_minutes), sub: 'combined hours', lead: true },
-        { label: 'Staff tips', value: usd0(d.staff_tips_cents), sub: 'everyone’s, yours included' },
+      totals.replaceChildren(facts([
+        { label: plural(d.bartender_count, 'bartender'), value: hoursText(d.bartender_minutes) },
+        { label: 'Staff tips', value: usd0(d.staff_tips_cents), hint: 'Everyone’s, yours included' },
         { label: 'Per bartender hour', value: perHourText(d.staff_tips_per_bartender_hour_cents) },
-      ], { label: 'Staff on this shift' }));
+      ]));
     }
-    ribbons.crew.update(v ? { S: v.S, E: v.E, crew: ctx.staff.map((m) => ({ name: m.name, ...staffDoc(m, v.S, v.E) })) } : undefined);
+    ribbons.crew.update(v && ctx.staff.length ? { S: v.S, E: v.E, crew: ctx.staff.map((m) => ({ name: m.name, ...staffDoc(m, v.S, v.E) })) } : undefined);
   }
 
   // Party: how many, how many guests, and when.
   function paintParty(v) {
     $('partySection').hidden = partyList.count() === 0;
-    if (!v) { $('partyTiles').replaceChildren(); return ribbons.party.update(); }
+    if (!v) { $('partyFacts').replaceChildren(); return ribbons.party.update(); }
     const guests = v.parties.reduce((a, p) => a + (p.guests ?? 0), 0);
     const minutes = v.parties.reduce((a, p) => a + (p.start_at ? wallMinutes(p.start_at, p.end_at) : 0), 0);
-    $('partyTiles').replaceChildren(tiles([
-      { label: 'Parties', value: String(v.parties.length), lead: true },
-      { label: 'Guests', value: guests ? String(guests) : '—' },
-      { label: 'Party time', value: minutes ? hoursText(minutes) : '—' },
-    ], { label: 'Parties on this shift' }));
+    $('partyFacts').replaceChildren(facts([
+      { label: 'Parties', value: String(v.parties.length) },
+      guests ? { label: 'Guests', value: String(guests) } : null,
+      minutes ? { label: 'Party time', value: hoursText(minutes) } : null,
+    ]));
     ribbons.party.update({ S: v.S, E: v.E, parties: v.parties });
   }
+
   root.addEventListener('click', refreshDerived); // a break added or removed, a Today button...
 
   // ---- location and employees: tap a name, or type one ------------------------------------
