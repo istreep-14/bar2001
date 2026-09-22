@@ -2,9 +2,11 @@
 // Usage: node scripts/import-brv8.js <db.json> [--dry-run] [--db data/bar.db]
 //
 // Times are the wall-clock times brv8 recorded (no timezone). The shift type comes from brv8's
-// shift_type (Day, Night or Double). A break becomes a start/end range when brv8 recorded one,
-// otherwise a duration (one entry in the shift's breaks). brv8's location becomes an entry in the
-// locations list. Only tips are imported (the app now has other income types, but the importer doesn't map brv8's yet); other income (Venmo,
+// shift_type when it recorded Day or Night; there is no "double" any more, so a shift brv8 called
+// Double (or left untyped) is classified the same way an untyped one is: by its start time against
+// the day/night cutoff. A break becomes a start/end range when brv8 recorded one, otherwise a
+// duration (one entry in the shift's breaks). brv8's location becomes an entry in the locations
+// list. Only tips are imported (the app now has other income types, but the importer doesn't map brv8's yet); other income (Venmo,
 // Consideration, Chump, paycheck) is counted and reported, not imported.
 //
 // Idempotent: each shift is stored with external_ref 'brv8:<id>' and skipped if already there;
@@ -30,7 +32,8 @@ const cents = (dollars) => Math.round(Number(dollars) * 100);
 
 function typeOf(shift) {
   const recorded = String(shift.shift_type ?? '').toLowerCase();
-  if (recorded === 'day' || recorded === 'night' || recorded === 'double') return recorded;
+  if (recorded === 'day' || recorded === 'night') return recorded;
+  // no recorded type, or brv8's "Double" (which no longer exists): guess from the start time
   return shift.start < DAY_CUTOFF_MINUTES ? 'day' : 'night';
 }
 
@@ -86,7 +89,7 @@ export function planImport(src) {
         skipped.push({ what: 'tips', id: tip.id, reason: `bad amount ${tip.amount}` });
         continue;
       }
-      money_entries.push({ value_cents: value, part: shift_type === 'double' ? null : shift_type });
+      money_entries.push({ value_cents: value });
     }
     const doc = {
       work_date: s.date,
@@ -149,7 +152,7 @@ function summarize(plan) {
   const { money } = plan.notImported;
   return [
     `${plan.wageRates.length} wage rate(s), ${new Set(plan.shifts.map((s) => s.location).filter(Boolean)).size} location(s)`,
-    `${plan.shifts.length} shift(s): ${kinds.day ?? 0} day, ${kinds.night ?? 0} night, ${kinds.double ?? 0} double`,
+    `${plan.shifts.length} shift(s): ${kinds.day ?? 0} day, ${kinds.night ?? 0} night`,
     `${entries.length} tip entr${entries.length === 1 ? 'y' : 'ies'}, $${tips.toFixed(2)} in tips`,
     `not imported (only tips are mapped so far): ${money.count} other income entr${money.count === 1 ? 'y' : 'ies'}, $${(money.cents / 100).toFixed(2)}`,
     `not imported (v2): ${plan.notImported.staff} staff, ${plan.notImported.assignments} assignments, ${plan.notImported.parties} parties, ${plan.notImported.shiftsLinkedToParty} shift(s) link to a party`,

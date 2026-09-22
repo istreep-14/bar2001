@@ -38,8 +38,8 @@ export function css(el, obj) {
 export const usd = (cents) => (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 export const usd0 = (cents) => (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 export const hours1 = (minutes) => `${(minutes / 60).toFixed(minutes % 60 === 0 ? 0 : 1)}h`;
-export const TYPE_NAME = { day: 'Day', night: 'Night', double: 'Double' };
-export const TYPE_LETTER = { day: 'D', night: 'N', double: 'D+N' };
+export const TYPE_NAME = { day: 'Day', night: 'Night' };
+export const TYPE_LETTER = { day: 'D', night: 'N' };
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const monthName = (m) => MONTHS[m];
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

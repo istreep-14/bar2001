@@ -24,7 +24,7 @@ export function createCalendar({ mode, data, derive, selected = () => null, excl
   const grid = h('div', { class: 'calgrid' });
   const foot = h('div', { class: 'calfoot' });
   const key = h('ul', { class: 'legend calkey' },
-    ...['day', 'night', 'double'].map((t) => h('li', null, h('i', { class: 'pill-key k-' + t }, TYPE_LETTER[t]), TYPE_NAME[t])),
+    ...['day', 'night'].map((t) => h('li', null, h('i', { class: 'pill-key k-' + t }, TYPE_LETTER[t]), TYPE_NAME[t])),
     h('li', null, h('i', { class: 'key today' }), 'Today'));
   const el = h('div', { class: 'cal cal-' + mode },
     h('div', { class: 'calhead' }, title, h('div', { class: 'calnav' }, now, prev, next)),
@@ -72,12 +72,14 @@ export function createCalendar({ mode, data, derive, selected = () => null, excl
       const list = shifts.get(date) ?? [];
       const number = Number(date.slice(8));
       const cls = 'day' + (inMonth ? '' : ' out') + (date === today ? ' today' : '') + (date === sel ? ' sel' : '') + (list.length ? ' has' : '');
-      const label = `${shortDate(date)}${list.length ? ': ' + list.map((s) => TYPE_NAME[s.shift_type]).join(' and ') + ' shift' + (list.length > 1 ? 's' : '') : ''}`;
+      const typeName = (t) => TYPE_NAME[t] ?? 'Shift';
+      const typeLetter = (t) => TYPE_LETTER[t] ?? '?';
+      const label = `${shortDate(date)}${list.length ? ': ' + list.map((s) => typeName(s.shift_type)).join(' and ') + ' shift' + (list.length > 1 ? 's' : '') : ''}`;
       if (mode === 'pick') {
         const tips = list.reduce((a, s) => a + derived.get(s.id)?.tips_cents, 0) || 0;
         cells.push(h('button', { type: 'button', class: cls, 'data-date': date, 'aria-pressed': String(date === sel), 'aria-label': label, tabindex: date === focusDate ? '0' : '-1', title: list.length ? `${label}${tips ? ' · ' + usd0(tips) + ' tips' : ''}` : null },
           h('span', { class: 'dn' }, String(number)),
-          list.length ? h('span', { class: 'marks' }, ...list.map((s) => h('i', { class: 'pill-key k-' + s.shift_type }, TYPE_LETTER[s.shift_type]))) : null,
+          list.length ? h('span', { class: 'marks' }, ...list.map((s) => h('i', { class: 'pill-key k-' + (s.shift_type ?? 'none') }, typeLetter(s.shift_type)))) : null,
           tips ? h('span', { class: 'amt' }, usd0(tips)) : null));
       } else {
         const dayTotal = list.reduce((a, s) => a + (derived.get(s.id)?.total_income_cents ?? 0), 0);
@@ -85,8 +87,8 @@ export function createCalendar({ mode, data, derive, selected = () => null, excl
           h('span', { class: 'dn' }, String(number)),
           ...list.map((s) => {
             const dv = derived.get(s.id);
-            return h('button', { type: 'button', class: 'chip k-' + s.shift_type, 'data-id': s.id, title: `${TYPE_NAME[s.shift_type]} · ${dv.paid_minutes ? hours1(dv.paid_minutes) : 'no hours'} worked · tips ${usd0(dv.tips_cents)} · total ${usd0(dv.total_income_cents)}`, 'aria-label': `Open ${label}` },
-              h('b', null, TYPE_LETTER[s.shift_type]), h('span', null, hours1(dv.paid_minutes)), h('span', { class: 'ca' }, usd0(dv.total_income_cents)));
+            return h('button', { type: 'button', class: 'chip k-' + (s.shift_type ?? 'none'), 'data-id': s.id, title: `${typeName(s.shift_type)} · ${dv.paid_minutes ? hours1(dv.paid_minutes) : 'no hours'} worked · tips ${usd0(dv.tips_cents)} · total ${usd0(dv.total_income_cents)}`, 'aria-label': `Open ${label}` },
+              h('b', null, typeLetter(s.shift_type)), h('span', null, hours1(dv.paid_minutes)), h('span', { class: 'ca' }, usd0(dv.total_income_cents)));
           }));
         if (inMonth && month.best > 0 && dayTotal > 0) css(cell, { '--heat': String(dayTotal / month.best) });
         cells.push(cell);

@@ -30,7 +30,7 @@ export const weekdayIndex = (date) => { const [y, m, d] = date.split('-').map(Nu
 // `shifts` should already be the live ones in the range; `exclude` skips one shift (the one being edited).
 export function summarize(shifts, derive, { exclude = null } = {}) {
   const all = blank();
-  const byType = { day: blank(), night: blank(), double: blank() };
+  const byType = { day: blank(), night: blank() };
   const byWeekday = Array.from({ length: 7 }, blank);
   const byLocation = new Map();
   const rows = [];
@@ -39,8 +39,8 @@ export function summarize(shifts, derive, { exclude = null } = {}) {
     const d = derive(s);
     rows.push({ s, d });
     add(all, d);
-    add(byType[s.shift_type] ?? (byType[s.shift_type] = blank()), d);
-    add(byWeekday[weekdayIndex(s.work_date)], d);
+    if (s.shift_type) add(byType[s.shift_type] ?? (byType[s.shift_type] = blank()), d);
+    if (s.work_date) add(byWeekday[weekdayIndex(s.work_date)], d);
     if (s.location_id) add(byLocation.get(s.location_id) ?? byLocation.set(s.location_id, blank()).get(s.location_id), d);
   }
   rows.sort((a, b) => (a.s.start_at < b.s.start_at ? -1 : a.s.start_at > b.s.start_at ? 1 : 0));
@@ -61,6 +61,7 @@ export function periods(rows, { from, to }) {
   const lastKey = keyOf(to);
   for (let key = keyOf(from); key <= lastKey; key = step(key)) map.set(key, { key, ...blank() });
   for (const { s, d } of rows) {
+    if (!s.work_date) continue;
     const bucket = map.get(keyOf(s.work_date));
     if (bucket) add(bucket, d);
   }

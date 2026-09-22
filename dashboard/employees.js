@@ -1,17 +1,16 @@
-// The employees section: the people you work with as a table of their own, in two tiers. The main panel is the roster,
-// grouped by role, with what each person has worked so far (shifts, hours, tips). The side panel is whoever is picked:
-// a profile form (name, role, notes; each field saved on its own through PATCH /employees/:id) over their activity (the
-// same figures in full, and their latest shifts). Everything goes through the public API, and the rows it changes are put
-// into `data` straight away so the shift form and the shift table update without waiting for the live feed.
+// The employees section: the people you work with as a table of their own, sortable, one row per person. The side
+// panel is whoever is picked: a profile form (name, first/last, id number, roles, manager, is-me, notes; each field
+// saved on its own through PATCH /employees/:id) over their activity (the same figures in full, and their latest
+// shifts). Everything goes through the public API, and the rows it changes are put into `data` straight away so the
+// shift form and the shift table update without waiting for the live feed.
 //
 // The figures come from GET /employees/summary and are derived on the server on every read, never stored; they are
-// refetched when a shift changes. The view is the Employees tab. (The shift form has no popup for it: a crew member's
-// role is edited in the form's own side panel.)
+// refetched when a shift changes. The view is the Employees tab. (The shift form has its own quick single-role field
+// for a crew member; full multi-role editing happens here.)
 import { wallMinutes } from '/time.js';
 import { hoursText, isBartender } from '/pay.js';
 
 export const SUGGESTED_ROLES = ['Bartender', 'Barback', 'Server', 'Host', 'Bouncer', 'Manager'];
-const NO_ROLE = 'No role set';
 
 export function createEmployeesManager({ h, request, data, isAuthError, onAuth, onChange, format }) {
   const { dateLabel, usd, usd0 } = format;
@@ -28,6 +27,7 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
   let summarySeq = 0;
   let recentSeq = 0;
   let refreshTimer = null;
+  let sort = { key: 'name', dir: 1 };
 
   const isShown = () => shown;
   const dash = () => h('span', { class: 'muted' }, '—');
@@ -40,68 +40,79 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
   const rosterMsg = (text, bad) => say('rosterMsg', text, bad);
   const sideMsg = (text, bad) => say('sideMsg', text, bad);
 
-  // ---- the roster (main tier) ------------------------------------------------------------
+  // ---- the roster (main tier): a flat table, sortable by clicking a header ------------------
   const people = () => [...data.employees.values()].filter((e) => !e.archived);
 
-  // People grouped by role (ignoring case), the groups in name order with "No role set" last, people by name within.
-  function groups() {
-    const byRole = new Map();
-    for (const p of people()) {
-      const key = (p.role ?? '').trim().toLowerCase();
-      if (!byRole.has(key)) byRole.set(key, { key, people: [] });
-      byRole.get(key).people.push(p);
-    }
-    for (const g of byRole.values()) {
-      g.people.sort((a, b) => a.name.localeCompare(b.name));
-      g.label = g.people[0].role?.trim() || NO_ROLE;
-    }
-    return [...byRole.values()].sort((a, b) => (a.key === '') - (b.key === '') || a.label.localeCompare(b.label));
+  function totals(p) {
+    const s = summary.get(p.id);
+    return s
+      ? { shifts: s.shifts, minutes: s.minutes, timed: s.timed_shifts, tips: s.tips_cents, tipped: s.tipped_shifts }
+      : { shifts: 0, minutes: 0, timed: 0, tips: 0, tipped: 0 };
   }
 
-  function totals(list) {
-    const t = { shifts: 0, minutes: 0, timed: 0, tips: 0, tipped: 0 };
-    for (const p of list) {
-      const s = summary.get(p.id);
-      if (!s) continue;
-      t.shifts += s.shifts; t.minutes += s.minutes; t.timed += s.timed_shifts; t.tips += s.tips_cents; t.tipped += s.tipped_shifts;
+  function sortValue(p, key) {
+    const s = summary.get(p.id);
+    switch (key) {
+      case 'roles': return p.roles.join(', ').toLowerCase();
+      case 'shifts': return s?.shifts ?? 0;
+      case 'hours': return s?.minutes ?? 0;
+      case 'tips': return s?.tips_cents ?? 0;
+      case 'last': return s?.last_worked ?? '';
+      default: return p.name.toLowerCase();
     }
-    return t;
   }
 
-  // The three figure cells every row shares. Hours and tips are a dash until someone entered times or tips; the hover
+  function sortedPeople() {
+    const { key, dir } = sort;
+    return [...people()].sort((a, b) => {
+      const av = sortValue(a, key);
+      const bv = sortValue(b, key);
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return (cmp || a.name.localeCompare(b.name)) * dir;
+    });
+  }
+
+  // The figure cells every row shares. Hours and tips are a dash until someone entered times or tips; the hover
   // title says when a figure is only part of the picture.
   function figureCells({ shifts, minutes, timed, tips, tipped }, last) {
     return [
       h('td', { class: 'num', 'data-label': 'Shifts' }, shifts ? String(shifts) : dash()),
       h('td', { class: 'num', 'data-label': 'Hours', title: timed && timed < shifts ? `From the ${timed} of ${shifts} shifts that have their times` : null }, timed ? hoursText(minutes) : dash()),
       h('td', { class: 'num', 'data-label': 'Tips', title: tipped ? usd(tips) + (tipped < shifts ? ` (${tipped} of ${shifts} shifts have tips entered)` : '') : null }, tipped ? usd0(tips) : dash()),
-      ...(last === undefined ? [h('td', { class: 'hide-sm' })] : [h('td', { class: 'num hide-sm', 'data-label': 'Last worked' }, last ? dateLabel(last) : dash())]),
+      h('td', { class: 'num hide-sm', 'data-label': 'Last worked' }, last ? dateLabel(last) : dash()),
     ];
-  }
-
-  function groupRow(g) {
-    return h('tr', { class: 'group' },
-      h('th', { scope: 'row', title: g.key === '' ? 'Counts as a bartender in a shift’s totals' : null }, g.label, h('span', { class: 'muted' }, ` ${g.people.length}`)),
-      ...figureCells(totals(g.people)));
   }
 
   function personRow(p) {
     const on = p.id === selected;
     const s = summary.get(p.id);
     return h('tr', { class: 'person' + (on ? ' selected' : ''), 'data-id': p.id },
-      h('td', null, h('button', { type: 'button', class: 'rowbtn', 'data-id': p.id, 'aria-current': on ? 'true' : null }, p.name)),
-      ...figureCells(totals([p]), s?.last_worked ?? null));
+      h('td', null, h('button', { type: 'button', class: 'rowbtn', 'data-id': p.id, 'aria-current': on ? 'true' : null },
+        p.name,
+        p.is_me ? h('span', { class: 'badge badge-me', title: 'This is you' }, 'You') : null,
+        p.manager ? h('span', { class: 'badge badge-mgr', title: 'Manager' }, 'Mgr') : null)),
+      h('td', { class: 'roles-cell', title: p.roles.join(', ') || null }, p.roles.length ? p.roles.join(', ') : dash()),
+      ...figureCells(totals(p), s?.last_worked ?? null));
+  }
+
+  function renderSortHeads() {
+    for (const btn of root.querySelectorAll('#rosterHead [data-sort]')) {
+      const active = btn.dataset.sort === sort.key;
+      btn.closest('th').setAttribute('aria-sort', active ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none');
+      btn.classList.toggle('sorted', active);
+    }
   }
 
   function renderRoster() {
-    const list = groups();
+    const list = sortedPeople();
     const active = document.activeElement;
     const refocus = active?.classList?.contains('rowbtn') ? active.dataset.id : null;   // the table is rebuilt on every change
-    $('rosterRows').replaceChildren(...list.flatMap((g) => [groupRow(g), ...g.people.map(personRow)]));
+    $('rosterRows').replaceChildren(...list.map(personRow));
     if (refocus) root.querySelector(`.rowbtn[data-id="${CSS.escape(refocus)}"]`)?.focus();
     $('rosterScroll').hidden = list.length === 0;
     $('employeesEmpty').hidden = list.length > 0;
-    const roles = new Set([...SUGGESTED_ROLES, ...[...data.employees.values()].map((e) => e.role).filter(Boolean)]);
+    renderSortHeads();
+    const roles = new Set([...SUGGESTED_ROLES, ...[...data.employees.values()].flatMap((e) => e.roles)]);
     $('roleList').replaceChildren(...[...roles].sort().map((r) => h('option', { value: r })));
   }
 
@@ -114,8 +125,8 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
       ['Hours', s?.timed_shifts ? hoursText(s.minutes) : '—', s && s.timed_shifts && s.timed_shifts < s.shifts ? `${s.timed_shifts} of ${s.shifts} shifts have times` : ''],
       ['Tips', s?.tipped_shifts ? usd(s.tips_cents) : '—', s && s.tipped_shifts && s.tipped_shifts < s.shifts ? `${s.tipped_shifts} of ${s.shifts} shifts have tips` : ''],
       ['Avg per tipped shift', avg === null ? '—' : usd(avg), ''],
-      ['First shift', s ? dateLabel(s.first_worked) : '—', ''],
-      ['Latest shift', s ? dateLabel(s.last_worked) : '—', ''],
+      ['First shift', s?.first_worked ? dateLabel(s.first_worked) : '—', ''],
+      ['Latest shift', s?.last_worked ? dateLabel(s.last_worked) : '—', ''],
     ];
     $('sideStats').replaceChildren(...tiles.map(([label, value, note]) =>
       h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, value), note ? h('span', { class: 'muted' }, note) : null)));
@@ -126,11 +137,41 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
       const e = s.employees.find((x) => x.employee_id === selected);
       const detail = [e?.start_at ? hoursText(wallMinutes(e.start_at, e.end_at)) : 'no times', e?.tips_cents != null ? usd(e.tips_cents) + ' tips' : ''].filter(Boolean).join(' · ');
       return h('li', { class: 'rshift' },
-        h('span', { class: 'rwhen' }, dateLabel(s.work_date), h('span', { class: 'badge badge-' + s.shift_type }, s.shift_type)),
+        h('span', { class: 'rwhen' }, s.work_date ? dateLabel(s.work_date) : 'No date', s.shift_type ? h('span', { class: 'badge badge-' + s.shift_type }, s.shift_type) : null),
         h('span', { class: 'muted' }, detail));
     });
     $('sideShifts').replaceChildren(...items);
     $('sideShiftsEmpty').hidden = items.length > 0;
+  }
+
+  // A role chip with its own remove button.
+  function chip(role) {
+    const remove = h('button', { type: 'button', class: 'chipx', 'aria-label': `Remove role ${role}` });
+    remove.textContent = '×';
+    remove.addEventListener('click', () => saveRoles(currentRoles().filter((r) => r !== role)));
+    return h('span', { class: 'chip' }, role, remove);
+  }
+
+  const currentRoles = () => (selected && data.employees.get(selected)?.roles) ?? [];
+
+  // The roles chip field: existing roles as removable chips, then a trailing text input that commits a new chip
+  // on Enter/comma/blur, or pops the last chip on Backspace when it's empty. Left alone while it has focus (like
+  // pName/pNotes below), so a role being typed can't be wiped out from under the cursor by a background refresh.
+  function renderChips({ force = false } = {}) {
+    if (!force && document.activeElement?.id === 'pRolesInput') return;
+    const roles = currentRoles();
+    const input = h('input', { id: 'pRolesInput', list: 'roleList', maxlength: '50', autocomplete: 'off', placeholder: roles.length ? 'Add a role' : 'Bartender', 'aria-label': 'Add a role' });
+    const commit = () => {
+      const value = input.value.trim();
+      input.value = '';
+      if (value && !roles.includes(value)) saveRoles([...roles, value]);
+    };
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ',') { ev.preventDefault(); commit(); }
+      else if (ev.key === 'Backspace' && !input.value && roles.length) saveRoles(roles.slice(0, -1));
+    });
+    input.addEventListener('blur', commit);
+    $('pRoles').replaceChildren(...roles.map(chip), input);
   }
 
   // `force` overwrites the profile fields even under the cursor (a different person was picked); otherwise the field
@@ -146,10 +187,13 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
     $('sideEmpty').hidden = true;
     $('sideDetail').hidden = false;
     $('sideName').textContent = p.name;
-    for (const [id, value] of [['pName', p.name], ['pRole', p.role ?? ''], ['pNotes', p.notes ?? '']]) {
+    for (const [id, value] of [['pName', p.name], ['pFirst', p.first ?? ''], ['pLast', p.last ?? ''], ['pIdNumber', p.id_number ?? ''], ['pNotes', p.notes ?? '']]) {
       if (force || document.activeElement !== $(id)) $(id).value = value;
     }
-    $('roleHint').textContent = isBartender(p.role)
+    if (document.activeElement !== $('pManager')) $('pManager').checked = p.manager;
+    if (document.activeElement !== $('pIsMe')) $('pIsMe').checked = p.is_me;
+    renderChips({ force });
+    $('roleHint').textContent = isBartender(p.roles)
       ? 'Counts as a bartender in a shift’s totals.'
       : 'Not counted as a bartender in a shift’s totals; their tips still count towards the shift.';
     $('removeEmployee').textContent = armed ? 'Click again to remove' : 'Remove ' + p.name;
@@ -231,6 +275,30 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
     render();
   }
 
+  async function saveRoles(roles) {
+    const person = selected && data.employees.get(selected);
+    if (!person) return;
+    const row = await call(() => request('PATCH', `/employees/${person.id}`, { roles }));
+    if (!row) return;
+    data.employees.set(row.id, row);
+    sideMsg(`Saved ${row.name}.`);
+    onChange();
+    render();
+  }
+
+  async function saveFlag(field, input) {
+    const person = selected && data.employees.get(selected);
+    if (!person) return;
+    const value = input.checked;
+    if (value === !!person[field]) return;
+    const row = await call(() => request('PATCH', `/employees/${person.id}`, { [field]: value }));
+    if (!row) { input.checked = !!person[field]; return; }
+    data.employees.set(row.id, row);
+    sideMsg(`Saved ${row.name}.`);
+    onChange();
+    render();
+  }
+
   async function drop() {
     const person = selected && data.employees.get(selected);
     if (!person) return;
@@ -251,7 +319,7 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
     if (!name) return $('newEmployeeName').focus();
     const role = $('newEmployeeRole').value.trim();
     const existed = people().some((p) => p.name.toLowerCase() === name.toLowerCase());
-    const row = await call(() => request('POST', '/employees', { name, ...(role && { role }) }), undefined, rosterMsg);
+    const row = await call(() => request('POST', '/employees', { name, ...(role && { roles: [role] }) }), undefined, rosterMsg);
     if (!row) return;
     data.employees.set(row.id, row);
     $('newEmployeeName').value = '';
@@ -268,7 +336,14 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
     const tr = ev.target.closest('tr.person');
     if (tr) select(tr.dataset.id);
   });
-  for (const [id, field] of [['pName', 'name'], ['pRole', 'role'], ['pNotes', 'notes']]) {
+  $('rosterHead').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-sort]');
+    if (!btn) return;
+    const key = btn.dataset.sort;
+    sort = { key, dir: sort.key === key ? -sort.dir : 1 };
+    renderRoster();
+  });
+  for (const [id, field] of [['pName', 'name'], ['pFirst', 'first'], ['pLast', 'last'], ['pIdNumber', 'id_number'], ['pNotes', 'notes']]) {
     const el = $(id);
     el.addEventListener('change', () => save(field, el));
     el.addEventListener('keydown', (ev) => {
@@ -277,6 +352,8 @@ export function createEmployeesManager({ h, request, data, isAuthError, onAuth, 
       if (ev.key === 'Escape' && person && el.value !== (person[field] ?? '')) { ev.preventDefault(); el.value = person[field] ?? ''; } // undo the edit, not the dialog
     });
   }
+  $('pManager').addEventListener('change', () => saveFlag('manager', $('pManager')));
+  $('pIsMe').addEventListener('change', () => saveFlag('is_me', $('pIsMe')));
   $('removeEmployee').addEventListener('click', () => {
     if (armed) return void drop();
     armed = true;

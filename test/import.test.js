@@ -18,7 +18,7 @@ const SRC = {
     { id: 'sh_3', date: '2026-07-04', start: null, end: null },
     { id: 'sh_4', date: '2026-07-05', start: 600, end: 600 },
     { id: 'sh_5', date: '2026-07-06', start: 900, end: 1200 }, // no recorded type: a 3 PM start is night by the 2 PM cutoff
-    { id: 'sh_6', date: '2026-07-07', start: 660, end: 1290, shift_type: 'Double' },
+    { id: 'sh_6', date: '2026-07-07', start: 660, end: 1290, shift_type: 'Double' }, // "Double" no longer exists: guessed by start time, like an untyped shift
   ],
   income: [
     { id: 'in_1', kind: 'tips', amount: 291.5, shift_id: 'sh_1' },
@@ -45,13 +45,13 @@ test('planImport keeps wall-clock times, takes the shift type and break from brv
   assert.equal(plan.shifts[0].location, 'Main', 'brv8 location becomes a list entry, applied when written');
   assert.ok(!('section' in a) && !('location' in a));
   assert.deepEqual(a.tags, ['busy']);
-  assert.deepEqual(a.money_entries, [{ value_cents: 29150, part: 'night' }]);
+  assert.deepEqual(a.money_entries, [{ value_cents: 29150 }]);
   assert.deepEqual([b.shift_type, b.breaks], ['day', [{ minutes: 30 }]]); // a duration-only break
   assert.deepEqual(c.breaks, [], 'no break recorded, none imported');
   assert.equal(plan.shifts[1].location, null);
-  assert.deepEqual(b.money_entries, [{ value_cents: 10000, part: 'day' }]);
+  assert.deepEqual(b.money_entries, [{ value_cents: 10000 }]);
   assert.equal(c.shift_type, 'night');
-  assert.deepEqual([d.shift_type, d.money_entries], ['double', [{ value_cents: 5000, part: null }]]); // combined on a double
+  assert.deepEqual([d.shift_type, d.money_entries], ['day', [{ value_cents: 5000 }]]); // "Double" no longer exists: guessed by its 11 AM start, same as an untyped shift
 
   assert.deepEqual(plan.skipped.map((s) => s.id).sort(), ['in_6', 'sh_3', 'sh_4']);
   assert.deepEqual(plan.notImported.money, { count: 3, cents: 14700 }); // Venmo 40 + paycheck 22 + unlinked Cash 85
@@ -78,7 +78,7 @@ test('runImport writes once and is idempotent on re-run', () => {
   const store = shiftStore(db);
   const stored = store.get(store.idForExternalRef('brv8:sh_1'));
   assert.equal(stored.external_ref, 'brv8:sh_1');
-  assert.deepEqual(stored.money_entries.map((m) => m.part), ['night']);
+  assert.deepEqual(stored.money_entries.map((m) => m.value_cents), [29150]);
   assert.equal(db.prepare('SELECT name FROM locations WHERE id = ?').get(stored.location_id).name, 'Main');
   assert.equal(store.get(store.idForExternalRef('brv8:sh_2')).location_id, null, 'no location in brv8, none here');
   assert.equal(stored.job_id, null);

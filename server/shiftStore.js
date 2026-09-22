@@ -2,13 +2,13 @@
 import { randomUUID } from 'node:crypto';
 import { transaction } from './db.js';
 import { invalid, notFound } from './http.js';
-import { validateShift, validateMoneyEntry, settleEntryPart, SHIFT_FIELDS } from './validate.js';
+import { validateShift, validateMoneyEntry, SHIFT_FIELDS } from './validate.js';
 import { TIPS_CATEGORY_ID } from './db.js';
 import { deriveShift } from './pay.js';
 
 const SHIFT_COLS =
   'id, job_id, location_id, work_date, start_at, end_at, shift_type, notes, external_ref, created_at, updated_at, deleted_at';
-const MONEY_COLS = 'id, shift_id, category_id, value_cents, part';
+const MONEY_COLS = 'id, shift_id, category_id, value_cents';
 const CHUNK = 500;
 
 const noop = () => {};
@@ -19,7 +19,7 @@ export function shiftStore(db, { emit = noop } = {}) {
   const all = (sql, ...args) => db.prepare(sql).all(...args);
 
   const entryText = (m) =>
-    `${one('SELECT name FROM income_categories WHERE id = ?', m.category_id)?.name ?? 'income'} ${dollars(m.value_cents)} (${m.part ?? 'combined'})`;
+    `${one('SELECT name FROM income_categories WHERE id = ?', m.category_id)?.name ?? 'income'} ${dollars(m.value_cents)}`;
 
   const shiftLabel = (shift) => {
     const where = shift.location_id ? one('SELECT name FROM locations WHERE id = ?', shift.location_id)?.name : null;
@@ -58,10 +58,14 @@ export function shiftStore(db, { emit = noop } = {}) {
       }
     }
     const rates = all('SELECT effective_from, rate_cents FROM wage_rates');
-    const roles = new Map(all('SELECT id, role FROM employees').map((e) => [e.id, e.role]));
+    const roles = new Map();
+    for (const r of all('SELECT employee_id, role FROM employee_roles')) {
+      if (!roles.has(r.employee_id)) roles.set(r.employee_id, []);
+      roles.get(r.employee_id).push(r.role);
+    }
     return rows.map((r) => {
       const shift = byId.get(r.id);
-      return { ...shift, derived: deriveShift(shift, rates, (id) => roles.get(id) ?? null) };
+      return { ...shift, derived: deriveShift(shift, rates, (id) => roles.get(id) ?? []) };
     });
   }
 
@@ -81,12 +85,10 @@ export function shiftStore(db, { emit = noop } = {}) {
     }
   }
 
-  const shiftType = (shiftId) => one('SELECT shift_type FROM shifts WHERE id = ?', shiftId)?.shift_type;
-
   function insertMoney(shiftId, entry) {
     const id = entry.id ?? randomUUID();
-    db.prepare(`INSERT INTO money_entries (${MONEY_COLS}) VALUES (?, ?, ?, ?, ?)`).run(
-      id, shiftId, entry.category_id ?? TIPS_CATEGORY_ID, entry.value_cents, entry.part ?? null,
+    db.prepare(`INSERT INTO money_entries (${MONEY_COLS}) VALUES (?, ?, ?, ?)`).run(
+      id, shiftId, entry.category_id ?? TIPS_CATEGORY_ID, entry.value_cents,
     );
     return id;
   }
@@ -169,8 +171,13 @@ export function shiftStore(db, { emit = noop } = {}) {
       if (has_party !== undefined) where.push(`${has_party ? '' : 'NOT '}EXISTS (SELECT 1 FROM parties WHERE parties.shift_id = shifts.id)`);
       if (cursor) {
         const [startAt, id] = decodeCursor(cursor);
-        where.push('(start_at < ? OR (start_at = ? AND id < ?))');
-        args.push(startAt, startAt, id);
+        if (startAt === null) { // already past every timed shift: only the undated ones (sorted last) remain
+          where.push('(start_at IS NULL AND id < ?)');
+          args.push(id);
+        } else {
+          where.push('(start_at < ? OR start_at IS NULL OR (start_at = ? AND id < ?))');
+          args.push(startAt, startAt, id);
+        }
       }
       const rows = all(
         `SELECT ${SHIFT_COLS} FROM shifts ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
@@ -193,7 +200,7 @@ export function shiftStore(db, { emit = noop } = {}) {
         requireRefs(input);
         const now = new Date().toISOString();
         const existing = one('SELECT id FROM shifts WHERE id = ?', id);
-        const cols = [input.job_id ?? null, input.location_id ?? null, input.work_date, input.start_at, input.end_at, input.shift_type,
+        const cols = [input.job_id ?? null, input.location_id ?? null, input.work_date ?? null, input.start_at ?? null, input.end_at ?? null, input.shift_type ?? null,
           input.notes ?? null];
         if (existing) {
           db.prepare(
@@ -226,15 +233,14 @@ export function shiftStore(db, { emit = noop } = {}) {
         db.prepare(
           `UPDATE shifts SET job_id = ?, location_id = ?, work_date = ?, start_at = ?, end_at = ?, shift_type = ?, notes = ?,
              updated_at = ? WHERE id = ?`,
-        ).run(value.job_id ?? null, value.location_id ?? null, value.work_date, value.start_at, value.end_at, value.shift_type,
+        ).run(value.job_id ?? null, value.location_id ?? null, value.work_date ?? null, value.start_at ?? null, value.end_at ?? null, value.shift_type ?? null,
           value.notes ?? null, new Date().toISOString(), id);
         replaceChildren(id, {
           breaks: 'breaks' in patch ? value.breaks : null,
           employees: 'employees' in patch ? value.employees : null,
           parties: 'parties' in patch ? value.parties : null,
           tags: 'tags' in patch ? value.tags : null,
-          // tips are rewritten when the type changes too, since each entry's `part` follows the type
-          money_entries: 'money_entries' in patch || 'shift_type' in patch ? value.money_entries : null,
+          money_entries: 'money_entries' in patch ? value.money_entries : null,
         });
         return store.get(id);
       });
@@ -263,8 +269,6 @@ export function shiftStore(db, { emit = noop } = {}) {
     addMoney(shiftId, entry) {
       const added = transaction(db, () => {
         if (!one('SELECT 1 AS x FROM shifts WHERE id = ?', shiftId)) throw notFound('shift');
-        const problem = settleEntryPart(entry, shiftType(shiftId));
-        if (problem) throw invalid([problem]);
         requireCategories([entry]);
         const id = insertMoney(shiftId, entry);
         touch(shiftId);
@@ -280,11 +284,9 @@ export function shiftStore(db, { emit = noop } = {}) {
         const { shift_id, id: _id, ...fields } = current;
         const { value, problems } = validateMoneyEntry({ ...fields, ...patch });
         if (problems.length) throw invalid(problems);
-        const problem = settleEntryPart(value, shiftType(shift_id));
-        if (problem) throw invalid([problem]);
         requireCategories([value]);
-        db.prepare('UPDATE money_entries SET category_id = ?, value_cents = ?, part = ? WHERE id = ?')
-          .run(value.category_id, value.value_cents, value.part ?? null, id);
+        db.prepare('UPDATE money_entries SET category_id = ?, value_cents = ? WHERE id = ?')
+          .run(value.category_id, value.value_cents, id);
         touch(shift_id);
         return store.getMoney(id);
       });
@@ -305,9 +307,14 @@ export function shiftStore(db, { emit = noop } = {}) {
   return store;
 }
 
-const encodeCursor = (startAt, id) => Buffer.from(`${startAt}|${id}`).toString('base64url');
+// A shift with no start_at yet sorts last (SQLite puts NULL after every value in DESC order), so its
+// cursor carries no start_at at all: an empty first half, told apart from a missing '|' entirely.
+const encodeCursor = (startAt, id) => Buffer.from(`${startAt ?? ''}|${id}`).toString('base64url');
 function decodeCursor(cursor) {
-  const [startAt, id] = Buffer.from(String(cursor), 'base64url').toString().split('|');
-  if (!startAt || !id) throw invalid(['cursor: invalid']);
-  return [startAt, id];
+  const raw = Buffer.from(String(cursor), 'base64url').toString();
+  const i = raw.indexOf('|');
+  const startAt = i < 0 ? '' : raw.slice(0, i);
+  const id = i < 0 ? '' : raw.slice(i + 1);
+  if (!id) throw invalid(['cursor: invalid']);
+  return [startAt || null, id];
 }

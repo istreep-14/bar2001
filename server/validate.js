@@ -3,8 +3,7 @@
 // Checks that need the database (foreign keys exist) live in the stores.
 import { isLocalDateTime, dateOf, wallMinutes } from './time.js';
 
-export const SHIFT_TYPES = ['day', 'night', 'double'];
-export const PARTS = ['day', 'night']; // which half of a double an income entry is for
+export const SHIFT_TYPES = ['day', 'night'];
 
 const MAX_SPAN_MINUTES = 24 * 60;
 const MAX_CENTS = 1_000_000_00; // $1,000,000: catches dollars-vs-cents mixups
@@ -81,10 +80,29 @@ const WAGE_RATE = {
 };
 // A locations / other-income-types entry: just a name (unique ignoring case; the list store enforces that).
 const LIST_ITEM = { name: req(str(100)), archived: opt(flag) };
+// Zero or more roles, same shape as a shift's tags (see `tags` below): de-duplicated, each a short string.
+const employeeRoles = (v) => {
+  if (!Array.isArray(v)) return bad('must be an array of strings');
+  if (v.length > 10) return bad('must have at most 10 roles');
+  const seen = new Set();
+  for (const item of v) {
+    const r = str(50)(item);
+    if (r.error) return bad(`each role ${r.error}`);
+    seen.add(r.value);
+  }
+  return ok([...seen]);
+};
+
 // An employee: a name (unique ignoring case; the employees store enforces that), and the fields added since.
+// `is_me` flags your own row (the employees store enforces that at most one is set).
 const EMPLOYEE = {
   name: req(str(100)),
-  role: opt(str(50, { nullable: true })),
+  first: opt(str(60, { nullable: true })),
+  last: opt(str(60, { nullable: true })),
+  id_number: opt(str(50, { nullable: true })),
+  roles: opt(employeeRoles),
+  manager: opt(flag),
+  is_me: opt(flag),
   notes: opt(str(2000, { nullable: true })),
   archived: opt(flag),
 };
@@ -96,28 +114,12 @@ export const validateWageRate = (body, { partial = false } = {}) => run(body, WA
 
 // ---- income ------------------------------------------------------------------------------
 // `category_id` is the kind of income (an income_categories row); left out, the store uses Tips.
-// `part` is which half of a double the entry is for (day or night), or null for "combined / not
-// sure". On a day or night shift the entry belongs to that type, so a null is filled in with it.
 const MONEY = {
   category_id: opt(uuid),
   value_cents: req(cents),
-  part: opt(nullable(oneOf(PARTS))),
 };
 
 export const validateMoneyEntry = (body, { partial = false } = {}) => run(body, MONEY, { partial });
-
-// Does the entry fit the shift's type? Fills in `part`. Returns a problem string or null.
-export function settleEntryPart(entry, shiftType) {
-  if (shiftType === 'double') {
-    if (entry.part === undefined) entry.part = null; // day, night or combined are all fine on a double
-    return null;
-  }
-  if (entry.part == null) {
-    entry.part = shiftType;
-    return null;
-  }
-  return entry.part === shiftType ? null : `part: this is a ${shiftType} shift, so its income can't be for ${entry.part}`;
-}
 
 function moneyList(v) {
   if (!Array.isArray(v)) return bad('must be an array');
@@ -255,10 +257,10 @@ function partyList(v) {
 const SHIFT = {
   job_id: opt(nullable(uuid)), // the shift form no longer asks for a venue or job
   location_id: opt(nullable(uuid)),
-  work_date: opt(date), // defaults to the date the shift starts
-  start_at: req(localTime),
-  end_at: req(localTime),
-  shift_type: req(oneOf(SHIFT_TYPES)),
+  work_date: opt(nullable(date)), // defaults to the date the shift starts, when there is one
+  start_at: opt(nullable(localTime)),
+  end_at: opt(nullable(localTime)),
+  shift_type: opt(nullable(oneOf(SHIFT_TYPES))),
   breaks: opt(breakList),
   employees: opt(staffList),
   parties: opt(partyList),
@@ -273,18 +275,23 @@ export function validateShift(body) {
   const { value, problems } = run(body, SHIFT, { partial: false });
   if (problems.length) return { value, problems };
 
-  const span = wallMinutes(value.start_at, value.end_at);
-  if (span <= 0) problems.push('end_at: must be after start_at');
-  else if (span > MAX_SPAN_MINUTES) problems.push('end_at: shift is longer than 24 hours; check the date');
+  if ((value.start_at == null) !== (value.end_at == null)) problems.push('end_at: give both start_at and end_at, or neither');
+  const timed = value.start_at != null && value.end_at != null;
+  const span = timed ? wallMinutes(value.start_at, value.end_at) : null;
+  if (timed) {
+    if (span <= 0) problems.push('end_at: must be after start_at');
+    else if (span > MAX_SPAN_MINUTES) problems.push('end_at: shift is longer than 24 hours; check the date');
+  }
 
-  // Breaks: each range sits inside the shift, ranges don't overlap, and together they fit in the shift.
+  // Breaks: each range sits inside the shift (when the shift itself has times), ranges don't overlap,
+  // and together they fit in the shift.
   value.breaks ??= [];
   const ranges = [];
   let breakTotal = 0;
   value.breaks.forEach((b, i) => {
     if (b.minutes !== undefined) return void (breakTotal += b.minutes);
     if (b.end_at <= b.start_at) problems.push(`breaks: [${i}] end_at must be after start_at`);
-    else if (span > 0 && (b.start_at < value.start_at || b.end_at > value.end_at)) problems.push(`breaks: [${i}] the break must fall inside the shift`);
+    else if (timed && span > 0 && (b.start_at < value.start_at || b.end_at > value.end_at)) problems.push(`breaks: [${i}] the break must fall inside the shift`);
     else {
       ranges.push(b);
       breakTotal += wallMinutes(b.start_at, b.end_at);
@@ -292,7 +299,7 @@ export function validateShift(body) {
   });
   ranges.sort((a, b) => (a.start_at < b.start_at ? -1 : a.start_at > b.start_at ? 1 : 0));
   for (let i = 1; i < ranges.length; i++) if (ranges[i].start_at < ranges[i - 1].end_at) problems.push('breaks: two breaks overlap');
-  if (span > 0 && breakTotal > span) problems.push('breaks: together the breaks are longer than the shift');
+  if (timed && span > 0 && breakTotal > span) problems.push('breaks: together the breaks are longer than the shift');
 
   // Staff and party times: an end after its start, and no longer than a day.
   for (const [what, list] of [['employees', value.employees ?? []], ['parties', value.parties ?? []]]) {
@@ -304,11 +311,6 @@ export function validateShift(body) {
     });
   }
 
-  (value.money_entries ?? []).forEach((entry, i) => {
-    const problem = settleEntryPart(entry, value.shift_type);
-    if (problem) problems.push(`money_entries: [${i}] ${problem}`);
-  });
-
-  if (!problems.length && !value.work_date) value.work_date = dateOf(value.start_at);
+  if (!problems.length && !value.work_date && value.start_at) value.work_date = dateOf(value.start_at);
   return { value, problems };
 }

@@ -42,7 +42,7 @@ export function createListsManager({ h, request, data, side, isAuthError, onAuth
   function createEditor(kind, spec, mount) {
     const isRates = !!spec.rates;
     const map = () => data[spec.key];
-    const tab = mount.closest('[role="tabpanel"]').dataset.tab; // the page this editor is on
+    const tab = mount.closest('[data-tab]').dataset.tab; // the page this editor is on
     let shiftDate = null;
 
     const rows = h('ul', { class: 'lrows' });

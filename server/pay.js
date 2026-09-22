@@ -21,7 +21,8 @@ export function breakMinutes(breaks) {
   return breaks.reduce((sum, b) => sum + (b.minutes ?? wallMinutes(b.start_at, b.end_at)), 0);
 }
 
-export const paidMinutes = ({ start_at, end_at, breaks = [] }) => Math.max(0, wallMinutes(start_at, end_at) - breakMinutes(breaks));
+export const paidMinutes = ({ start_at, end_at, breaks = [] }) =>
+  start_at && end_at ? Math.max(0, wallMinutes(start_at, end_at) - breakMinutes(breaks)) : 0;
 
 // `rates` is [{ effective_from: 'YYYY-MM-DD', rate_cents }] in any order. Null before the first rate.
 export function rateOn(rates, workDate) {
@@ -30,16 +31,18 @@ export function rateOn(rates, workDate) {
   return best;
 }
 
-// A blank role counts as a bartender: most of the people you list are, and it means nothing needs setting up first.
-export const isBartender = (role) => !role || role.trim().toLowerCase() === 'bartender';
+// No roles, or "Bartender" among them, counts as a bartender: most of the people you list are, and it means
+// nothing needs setting up first.
+export const isBartender = (roles) => !roles?.length || roles.some((r) => r.trim().toLowerCase() === 'bartender');
 
 const perHour = (cents, minutes) => (minutes > 0 ? Math.round((cents * 60) / minutes) : null);
 
-// `shift` needs work_date, start_at, end_at, and optionally breaks[], money_entries[] ({category_id, value_cents}),
-// employees[] ({employee_id, start_at, end_at, tips_cents}) and parties[]. `roleOf(employee_id)` gives an employee's role.
-export function deriveShift(shift, rates, roleOf = () => null) {
+// `shift` may have work_date, start_at, end_at (all optional; paid time and wage are 0/null without them),
+// and optionally breaks[], money_entries[] ({category_id, value_cents}), employees[] ({employee_id, start_at,
+// end_at, tips_cents}) and parties[]. `rolesOf(employee_id)` gives an employee's roles[].
+export function deriveShift(shift, rates, rolesOf = () => []) {
   const minutes = paidMinutes(shift);
-  const rate = rateOn(rates, shift.work_date);
+  const rate = shift.work_date ? rateOn(rates, shift.work_date) : null;
   const wage = rate ? Math.round((minutes * rate.rate_cents) / 60) : null;
   let tips = 0;
   let other = 0;
@@ -54,7 +57,7 @@ export function deriveShift(shift, rates, roleOf = () => null) {
   let staffTips = tips;
   for (const e of shift.employees ?? []) {
     staffTips += e.tips_cents ?? 0;
-    if (!isBartender(roleOf(e.employee_id))) continue;
+    if (!isBartender(rolesOf(e.employee_id))) continue;
     bartenders += 1;
     if (e.start_at) bartenderMinutes += wallMinutes(e.start_at, e.end_at);
   }

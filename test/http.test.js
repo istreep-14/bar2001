@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { startApp, shiftDoc, doubleDoc } from './helpers.js';
+import { startApp, shiftDoc } from './helpers.js';
 
 const TIPS = '00000000-0000-4000-8000-000000000001'; // the built-in Tips income type
 
@@ -59,19 +59,20 @@ test('shift lifecycle over HTTP: PUT twice, list, patch, soft and hard delete', 
     const { job } = await seed(app);
     const location = (await app.call('POST', '/locations', { name: 'Main Bar' })).body;
     const ana = (await app.call('POST', '/employees', { name: 'Ana' })).body;
-    const ben = (await app.call('POST', '/employees', { name: 'Ben', role: 'Barback' })).body;
+    const ben = (await app.call('POST', '/employees', { name: 'Ben', roles: ['Barback'] })).body;
     const id = app.newId();
-    const doc = doubleDoc(job.id, {
+    const doc = shiftDoc(job.id, {
+      start_at: '2026-09-18T11:00', end_at: '2026-09-18T21:30',
       location_id: location.id, tags: ['busy'],
       employees: [{ employee_id: ben.id, start_at: '2026-09-18T12:00', end_at: '2026-09-18T20:00', tips_cents: 9000 }, { employee_id: ana.id }],
       parties: [{ name: 'Smith 40th', guests: 40 }],
       breaks: [{ start_at: '2026-09-18T15:00', end_at: '2026-09-18T15:30' }, { minutes: 10 }],
-      money_entries: [{ value_cents: 21000, part: 'day' }, { value_cents: 34550, part: 'night' }, { value_cents: 1000, part: null }],
+      money_entries: [{ value_cents: 21000 }, { value_cents: 34550 }, { value_cents: 1000 }],
     });
     const first = await app.call('PUT', `/shifts/${id}`, doc);
     assert.equal(first.status, 201);
     assert.equal(first.body.work_date, '2026-09-18');
-    assert.equal(first.body.shift_type, 'double');
+    assert.equal(first.body.shift_type, 'night');
     assert.deepEqual(first.body.breaks, [{ start_at: '2026-09-18T15:00', end_at: '2026-09-18T15:30' }, { minutes: 10 }]);
     assert.equal(first.body.location_id, location.id);
     assert.deepEqual(first.body.employees, [
@@ -80,8 +81,8 @@ test('shift lifecycle over HTTP: PUT twice, list, patch, soft and hard delete', 
     ], 'staff come back by name, with their times and tips');
     assert.deepEqual(first.body.parties, [{ name: 'Smith 40th', guests: 40, start_at: null, end_at: null, notes: null }]);
     assert.deepEqual([first.body.derived.has_party, first.body.derived.party_count], [true, 1]);
-    assert.deepEqual(first.body.money_entries.map((m) => [m.category_id, m.value_cents, m.part]),
-      [[TIPS, 21000, 'day'], [TIPS, 34550, 'night'], [TIPS, 1000, null]], 'an entry with no type is tips');
+    assert.deepEqual(first.body.money_entries.map((m) => [m.category_id, m.value_cents]),
+      [[TIPS, 21000], [TIPS, 34550], [TIPS, 1000]], 'an entry with no type is tips');
     assert.equal((await app.call('PUT', `/shifts/${id}`, doc)).status, 200);
 
     const list = await app.call('GET', '/shifts?from=2026-09-01&to=2026-09-30');
@@ -105,11 +106,11 @@ test('shift lifecycle over HTTP: PUT twice, list, patch, soft and hard delete', 
     assert.equal(badPatch.status, 400);
     assert.match(badPatch.body.problems.join(), /after start_at/);
 
-    const money = await app.call('POST', `/shifts/${id}/money`, { value_cents: 4000, part: 'night' });
+    const money = await app.call('POST', `/shifts/${id}/money`, { value_cents: 4000 });
     assert.equal(money.status, 201);
     assert.equal(money.body.category_id, TIPS);
     assert.equal((await app.call('PATCH', `/money/${money.body.id}`, { value_cents: 4500 })).body.value_cents, 4500);
-    assert.equal((await app.call('PATCH', `/money/${money.body.id}`, { part: null })).body.part, null);
+    assert.equal((await app.call('POST', `/shifts/${id}/money`, { value_cents: 1, part: 'day' })).status, 400, '"part" no longer exists');
     assert.equal((await app.call('POST', `/shifts/${id}/money`, { value_cents: 1, category: 'wage' })).status, 400, 'the old name field is gone');
     const noType = await app.call('POST', `/shifts/${id}/money`, { value_cents: 1, category_id: app.newId() });
     assert.equal(noType.status, 400);
@@ -127,28 +128,32 @@ test('shift lifecycle over HTTP: PUT twice, list, patch, soft and hard delete', 
     assert.equal((await app.call('GET', '/export')).body.shifts.length, 0);
   }));
 
-test('a shift needs a type; tip periods, timezones and zoned times are gone', () =>
+test('a shift needs no type ("double" is gone); tip periods, timezones and zoned times are gone', () =>
   withApp(async (app) => {
     const { job } = await seed(app);
     const noType = shiftDoc(job.id);
     delete noType.shift_type;
     const missing = await app.call('PUT', `/shifts/${app.newId()}`, noType);
-    assert.equal(missing.status, 400);
-    assert.match(missing.body.problems.join(), /shift_type: required/);
+    assert.equal(missing.status, 201, 'a type is not required');
+    assert.equal(missing.body.shift_type, null);
+    const wasDouble = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(job.id, { shift_type: 'double' }));
+    assert.equal(wasDouble.status, 400);
+    assert.match(wasDouble.body.problems.join(), /shift_type: must be one of: day, night/);
     const old = await app.call('PUT', `/shifts/${app.newId()}`, { ...shiftDoc(job.id), tz: 'America/New_York', tip_periods: [], start_at: '2026-09-18T21:00:00Z' });
     assert.equal(old.status, 400);
     assert.match(old.body.problems.join(), /tz: unknown field/);
     assert.match(old.body.problems.join(), /tip_periods: unknown field/);
     assert.match(old.body.problems.join(), /start_at: must be a local time/);
-    const wrongPart = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(job.id, { money_entries: [{ value_cents: 5, part: 'day' }] }));
-    assert.match(wrongPart.body.problems.join(), /this is a night shift/);
+    const noPart = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(job.id, { money_entries: [{ value_cents: 5, part: 'day' }] }));
+    assert.equal(noPart.status, 400);
+    assert.match(noPart.body.problems.join(), /part: unknown field/, '"part" no longer exists');
     const badBreak = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(job.id, { breaks: [{ start_at: '2026-09-18T20:00', end_at: '2026-09-18T20:30', minutes: 30 }] }));
     assert.match(badBreak.body.problems.join(), /a start and end or a length in minutes, not both/);
     const noPlace = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(job.id, { location_id: app.newId() }));
     assert.match(noPlace.body.problems.join(), /location_id: no such location/);
     const noPerson = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(job.id, { employees: [{ employee_id: app.newId() }] }));
     assert.match(noPerson.body.problems.join(), /employees: no such employee/);
-    assert.equal((await app.call('GET', '/shifts')).body.shifts.length, 0, 'nothing was saved');
+    assert.equal((await app.call('GET', '/shifts')).body.shifts.length, 1, 'only the typeless shift was saved; every invalid attempt after it was not');
     const jobless = await app.call('PUT', `/shifts/${app.newId()}`, shiftDoc(undefined));
     assert.equal(jobless.status, 201, 'a shift needs no job or location');
     assert.deepEqual([jobless.body.job_id, jobless.body.location_id], [null, null]);

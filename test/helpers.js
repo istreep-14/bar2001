@@ -23,11 +23,6 @@ export function shiftDoc(job_id, overrides = {}) {
   };
 }
 
-// A double: 11:00 AM to 9:30 PM.
-export function doubleDoc(job_id, overrides = {}) {
-  return shiftDoc(job_id, { start_at: '2026-09-18T11:00', end_at: '2026-09-18T21:30', shift_type: 'double', ...overrides });
-}
-
 // A real HTTP server on an ephemeral port, backed by an in-memory database.
 export async function startApp({ token = null } = {}) {
   const db = openDb(':memory:');
