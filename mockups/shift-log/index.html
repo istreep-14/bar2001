@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shift log · improvement blocks · Bar2.000 mockups</title>
+<link rel="stylesheet" href="../../dashboard/styles.css">
+<link rel="stylesheet" href="../mockup.css">
+<link rel="stylesheet" href="proposed.css">
+</head>
+<body>
+
+<!-- Every icon is a plain <path>, the way dashboard/index.html's ICONS map is, so anything used here can be
+     pasted into it as it stands. -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0 -10 0z"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-party" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><path d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-details" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15z"/><path d="M21 21l-5.2-5.2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 9.5v4.6"/><path d="M12 17.3v.1"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v6h6"/><path d="M3.5 15a9 9 0 1 0 2.2-9.4L2 10"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M7.5 9.5 12 14l4.5-4.5"/><path d="M4 19h16"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 5.5h15v14h-15z"/><path d="M4.5 10h15"/><path d="M9 3v4"/><path d="M15 3v4"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5h18"/><path d="M6.5 12h11"/><path d="M10 18.5h4"/></symbol>
+</svg>
+
+<div class="sheet">
+  <header class="sheet-head">
+    <p class="eyebrow">Bar2.000 · mockup · not wired up</p>
+    <h1>Shift log: improvement blocks</h1>
+    <p class="lede">Nine blocks that could be added to <b>Shift › Shift log</b>, each drawn with the app's own
+      stylesheet and its real components, so what you are looking at is what the page would look like. The
+      figures are made up and nothing clicks: these are pictures with notes, for deciding what is worth
+      building. The CSS each block would add to <code>dashboard/styles.css</code> is in
+      <code>proposed.css</code> beside this file, and nothing in the app has been changed.</p>
+    <div class="sheet-tools">
+      <span class="flabel">Theme</span>
+      <div class="pills" id="themePills">
+        <button type="button" class="pill" data-theme="" aria-pressed="true">Auto</button>
+        <button type="button" class="pill" data-theme="light" aria-pressed="false">Light</button>
+        <button type="button" class="pill" data-theme="dark" aria-pressed="false">Dark</button>
+      </div>
+      <span class="spacer"></span>
+      <a class="btn" href="assembled.html">See them all on one page →</a>
+    </div>
+    <nav class="toc" aria-label="Blocks">
+      <a href="#b1"><i>01</i><span>Filter bar: range, type, place, search</span></a>
+      <a href="#b2"><i>02</i><span>Totals for the shifts on screen</span></a>
+      <a href="#b3"><i>03</i><span>Sortable columns and row density</span></a>
+      <a href="#b4"><i>04</i><span>Group headings that stick, fold and compare</span></a>
+      <a href="#b5"><i>05</i><span>Row states: unfinished, deleted, party</span></a>
+      <a href="#b6"><i>06</i><span>The unfinished-shifts nudge</span></a>
+      <a href="#b7"><i>07</i><span>A table foot instead of a standing note</span></a>
+      <a href="#b8"><i>08</i><span>Empty, filtered-empty and loading</span></a>
+      <a href="#b9"><i>09</i><span>Picking several rows (optional)</span></a>
+    </nav>
+  </header>
+
+  <div class="blocks">
+
+    <!-- ============================================================ 01 ============================== -->
+    <section class="block" id="b1">
+      <div class="block-head">
+        <h2><i>01</i>Filter bar: range, type, place, search<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>The panel head holds one control: <em>Show deleted</em>. Every shift that is
+            loaded is on screen, newest first, and the only way to narrow it down is to scroll.</dd></div>
+          <div><dt>Change</dt><dd>A filter row under the panel head: a range, the shift type, the place, a text
+            search over notes, tags, crew and party, and toggles for party nights, unfinished shifts and deleted
+            ones. Under it, one chip per filter that is on, each taking itself off, and the count it left.</dd></div>
+          <div><dt>Why</dt><dd>Every question you ask the log is "of these shifts" — the Saturdays, the ones at
+            the Harbour Room, the one with the wedding. The page already holds the shifts; the filters are a
+            predicate in <code>renderShifts()</code> and a totals recount, the way <code>#showDeleted</code>
+            already is.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (a <code>state.filter</code> object, the
+            predicate, the chips) and the <code>.logbar</code> / <code>.fchips</code> rules. No server work:
+            <code>GET /shifts</code> already takes <code>from</code>, <code>to</code>,
+            <code>location_id</code>, <code>employee_id</code> and <code>has_party</code>, for when the filter
+            should reach past what is loaded.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">Filtered <span>90 days · night shifts · one place</span></p>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Shift log</h2>
+            <div class="toolbar">
+              <span class="flabel">Group</span>
+              <div class="seg tabs" role="radiogroup" aria-label="Group by">
+                <label><input type="radio" name="b1group" checked> Month</label>
+                <label><input type="radio" name="b1group"> Week</label>
+                <label><input type="radio" name="b1group"> None</label>
+              </div>
+              <button type="button" class="btn"><svg width="15" height="15"><use href="#i-download"></use></svg> Export</button>
+            </div>
+          </div>
+
+          <div class="logbar">
+            <div class="fgroup">
+              <span class="flabel">Range</span>
+              <div class="seg tabs" role="radiogroup" aria-label="Range">
+                <label><input type="radio" name="b1range"> 30d</label>
+                <label><input type="radio" name="b1range" checked> 90d</label>
+                <label><input type="radio" name="b1range"> Year</label>
+                <label><input type="radio" name="b1range"> All</label>
+              </div>
+            </div>
+            <div class="fgroup">
+              <span class="flabel">Type</span>
+              <div class="seg tabs" role="radiogroup" aria-label="Shift type">
+                <label><input type="radio" name="b1type"> Any</label>
+                <label><input type="radio" name="b1type"> Day</label>
+                <label><input type="radio" name="b1type" checked> Night</label>
+              </div>
+            </div>
+            <div class="fgroup">
+              <span class="flabel">Place</span>
+              <select aria-label="Place">
+                <option selected>The Fox</option>
+                <option>Harbour Room</option>
+                <option>Vine &amp; Co</option>
+                <option>Anywhere</option>
+              </select>
+            </div>
+            <label class="fsearch">
+              <svg aria-hidden="true"><use href="#i-search"></use></svg>
+              <input type="search" placeholder="Notes, tags, crew…" aria-label="Search shifts">
+            </label>
+            <span class="spacer"></span>
+            <div class="fgroup">
+              <button type="button" class="pill" aria-pressed="false">Party</button>
+              <button type="button" class="pill" aria-pressed="false">Unfinished</button>
+              <button type="button" class="pill" aria-pressed="false">Deleted</button>
+            </div>
+          </div>
+
+          <div class="fchips">
+            <span class="fcount"><b>9</b> of 43 shifts</span>
+            <button type="button" class="fchip">Last 90 days <span class="chipx" aria-hidden="true">✕</span></button>
+            <button type="button" class="fchip"><b>Night</b> <span class="chipx" aria-hidden="true">✕</span></button>
+            <button type="button" class="fchip">The Fox <span class="chipx" aria-hidden="true">✕</span></button>
+            <button type="button" class="linkbtn">Clear all</button>
+          </div>
+
+          <div class="scroll">
+            <table class="shifts">
+              <thead><tr><th>Date</th><th class="icon-col">Type</th><th class="icon-col">Place</th><th>Shift</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Wage</th><th class="num">Other</th><th class="num">Total</th><th class="num">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+              <tbody>
+                <tr class="group"><th colspan="11" scope="colgroup">
+                  <div class="ghdr"><span class="gname">September</span><span class="gsum">3 shifts · 21h 0m · $922 tips · $1,323 total</span></div>
+                </th></tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 19</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span" title="Ran 5:00 PM to 1:30 AM">5:00p–1:30a</td>
+                  <td class="num hrs" title="8h 0m worked (a break not counted)">8</td>
+                  <td class="num money" title="$412.00 · $51.50/hr"><span class="moneygrp"><span class="amt">$412</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="15" height="5" rx="2.5"/></svg>$52/hr</span></span></td>
+                  <td class="num" title="$132.00&#10;8h 0m × $16.50/hr">$132</td>
+                  <td class="num" title="Cash $40.00">$40</td>
+                  <td class="num money" title="$584.00 · $73.00/hr"><span class="moneygrp"><span class="amt">$584</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="16" height="5" rx="2.5"/></svg>$73/hr</span></span></td>
+                  <td class="num" title="3 bartenders including you, 21h 30m between you">3 · 21h 30m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit shift 2026-09-19"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Show preview" aria-expanded="false"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete shift 2026-09-19"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Fri</span><span class="dm">Sep 18</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span" title="Ran 6:00 PM to 12:30 AM">6:00p–12:30a</td>
+                  <td class="num hrs" title="6h 30m worked">6.5</td>
+                  <td class="num money" title="$268.00 · $41.23/hr"><span class="moneygrp"><span class="amt">$268</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="12" height="5" rx="2.5"/></svg>$41/hr</span></span></td>
+                  <td class="num" title="$107.25&#10;6h 30m × $16.50/hr">$107</td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="num money" title="$375.25 · $57.73/hr"><span class="moneygrp"><span class="amt">$375</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="13" height="5" rx="2.5"/></svg>$58/hr</span></span></td>
+                  <td class="num" title="2 bartenders including you, 12h 0m between you">2 · 12h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit shift 2026-09-18"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Show preview" aria-expanded="false"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete shift 2026-09-18"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Wed</span><span class="dm">Sep 2</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span" title="Ran 5:00 PM to 11:30 PM">5:00p–11:30p</td>
+                  <td class="num hrs" title="6h 30m worked">6.5</td>
+                  <td class="num money" title="$242.00 · $37.23/hr"><span class="moneygrp"><span class="amt">$242</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="11" height="5" rx="2.5"/></svg>$37/hr</span></span></td>
+                  <td class="num" title="$107.25&#10;6h 30m × $16.50/hr">$107</td>
+                  <td class="num" title="Venmo $15.00">$15</td>
+                  <td class="num money" title="$364.25 · $56.04/hr"><span class="moneygrp"><span class="amt">$364</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="12" height="5" rx="2.5"/></svg>$56/hr</span></span></td>
+                  <td class="num" title="2 bartenders including you, 13h 0m between you">2 · 13h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit shift 2026-09-02"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Show preview" aria-expanded="false"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete shift 2026-09-02"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <ul class="annots">
+          <li class="annot"><b>i</b><span>The range, type and place are <code>.seg.tabs</code> and a plain
+            <code>select</code> — the segmented control the Overview's range already uses.</span></li>
+          <li class="annot"><b>i</b><span><em>Show deleted</em> leaves the panel head and becomes one of the
+            three toggles on the right, beside <em>Party</em> and <em>Unfinished</em>.</span></li>
+          <li class="annot"><b>i</b><span>The chip row is the only place a filter is stated, so the count
+            ("9 of 43") and the way out are always in the same spot.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================ 02 ============================== -->
+    <section class="block" id="b2">
+      <div class="block-head">
+        <h2><i>02</i>Totals for the shifts on screen<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>Each month heading carries its own totals, and the Overview has totals for a
+            range, but the log itself never says what the rows you are looking at add up to.</dd></div>
+          <div><dt>Change</dt><dd>A strip above the table, in the app's own tiles: shifts, hours, tips, the
+            estimated wage, other income, and total income leading, each with its per-hour figure and its move
+            against the range before it. It follows the filters, so it is always the total of what is on
+            screen.</dd></div>
+          <div><dt>Why</dt><dd>It answers the question the filters are asked for. Filter to Saturdays at the
+            Harbour Room and the strip tells you what Saturdays at the Harbour Room are worth, without going to
+            the Overview and setting a range that cannot express it.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/insights.js</code> already has <code>summarize()</code> and
+            <code>tipsPerHour</code>/<code>totalPerHour</code>, and <code>viz.js</code> draws these tiles for
+            the Overview. New CSS: the <code>.logsum</code> wrapper and <code>.trend</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">Unfiltered <span>the 43 shifts loaded</span></p>
+        <section class="panel">
+          <div class="panel-head"><h2>Shift log</h2><span class="muted">Last 90 days</span></div>
+          <div class="logsum">
+            <dl class="tiles">
+              <div class="tile"><dt>Shifts</dt><dd>43</dd><span class="sub">9 day · 34 night</span></div>
+              <div class="tile"><dt>Hours</dt><dd>331</dd><span class="sub">7.7 a shift</span></div>
+              <div class="tile"><dt>Tips</dt><dd>$9,480</dd><span class="sub">$28.6/hr <span class="trend up">▲ 6%</span></span></div>
+              <div class="tile"><dt>Wage</dt><dd>$5,462</dd><span class="sub">est. at $16.50/hr</span></div>
+              <div class="tile"><dt>Other</dt><dd>$610</dd><span class="sub">Cash · Venmo</span></div>
+              <div class="tile lead"><dt>Total income</dt><dd>$15,552</dd><span class="sub" title="$47.00/hr, against $42.05/hr over the 90 days before">$47.0/hr · <span class="trend up">▲ 12%</span></span></div>
+            </dl>
+          </div>
+          <div class="scroll">
+            <table class="shifts">
+              <thead><tr><th>Date</th><th class="icon-col">Type</th><th class="icon-col">Place</th><th>Shift</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Wage</th><th class="num">Other</th><th class="num">Total</th><th class="num">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+              <tbody>
+                <tr class="group"><th colspan="11" scope="colgroup">
+                  <div class="ghdr"><span class="gname">September</span><span class="gsum">6 shifts · 41h 30m · $1,767 tips · $2,610 total</span></div>
+                </th></tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 19</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–1:30a</td>
+                  <td class="num hrs">8</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$412</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="15" height="5" rx="2.5"/></svg>$52/hr</span></span></td>
+                  <td class="num">$132</td>
+                  <td class="num">$40</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$584</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="16" height="5" rx="2.5"/></svg>$73/hr</span></span></td>
+                  <td class="num">3 · 21h 30m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Fri</span><span class="dm">Sep 18</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">6:00p–12:30a</td>
+                  <td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$268</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="12" height="5" rx="2.5"/></svg>$41/hr</span></span></td>
+                  <td class="num">$107</td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$375</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="13" height="5" rx="2.5"/></svg>$58/hr</span></span></td>
+                  <td class="num">2 · 12h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <div class="callout"><b>Open question.</b> The strip can only total what the page has loaded, and the
+          log loads 100 shifts at a time. It should say which ("the 43 shifts loaded", "last 90 days"), and the
+          per-cent moves need the range before it to be loaded too — otherwise leave them off, the way a partial
+          oldest month already leaves its heading totals off.</div>
+      </div>
+    </section>
+
+    <!-- ============================================================ 03 ============================== -->
+    <section class="block" id="b3">
+      <div class="block-head">
+        <h2><i>03</i>Sortable columns and row density<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>The log is always newest first. The Employees roster next door already sorts by
+            any column with <code>.colsort</code> and <code>th[aria-sort]</code>.</dd></div>
+          <div><dt>Change</dt><dd>The same header buttons here, over the derived figures: hours, tips, tips/hr,
+            wage, other, total, total/hr, crew. Sorting by a figure crosses the months, so the month headings
+            give way to one line saying what the order is, with the way back in it. Two densities beside it, for
+            reading a long stretch or for a phone.</dd></div>
+          <div><dt>Why</dt><dd>"Which nights were the best" is one click from a table that already computes
+            every figure on every row. It is also the cheapest block here: the sort keys all exist on
+            <code>derive(s)</code>.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (<code>renderShifts()</code> sorts by a
+            <code>state.sort</code> key and skips grouping when it isn't the date; the roster's handler can be
+            copied). CSS: three lines for the header buttons, <code>.sortnote</code>, and the two density
+            classes.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">Sorted by tips per hour <span>month grouping off while a figure is the order</span></p>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Shift log</h2>
+            <div class="toolbar">
+              <span class="flabel">Density</span>
+              <div class="seg tabs" role="radiogroup" aria-label="Row density" id="densitySeg">
+                <label><input type="radio" name="b3density" value="compact"> Compact</label>
+                <label><input type="radio" name="b3density" value="" checked> Default</label>
+                <label><input type="radio" name="b3density" value="roomy"> Roomy</label>
+              </div>
+            </div>
+          </div>
+          <div class="sortnote">
+            <span>Ordered by <b>Tips/hr</b>, highest first, across every month loaded.</span>
+            <button type="button" class="linkbtn">Back to newest first</button>
+          </div>
+          <div class="scroll">
+            <table class="shifts" id="densityDemo">
+              <thead><tr>
+                <th><button type="button" class="colsort" data-sort="date">Date</button></th>
+                <th class="icon-col">Type</th>
+                <th class="icon-col">Place</th>
+                <th>Shift</th>
+                <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="hours">Hours</button></th>
+                <th class="num" aria-sort="descending"><button type="button" class="colsort sorted" data-sort="tipsrate">Tips</button></th>
+                <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="wage">Wage</button></th>
+                <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="other">Other</button></th>
+                <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="total">Total</button></th>
+                <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="crew">Crew</button></th>
+                <th class="actions"><span class="sr">Actions</span></th>
+              </tr></thead>
+              <tbody>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Thu</span><span class="dm">Sep 10</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span><span class="ticon party" title="Party · Ilse 40th · 45 guests"><svg width="13" height="13"><use href="#i-party"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Vine &amp; Co"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">7:00p–2:00a</td>
+                  <td class="num hrs">7</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$505</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="18" height="5" rx="2.5"/></svg>$72/hr</span></span></td>
+                  <td class="num">$115</td>
+                  <td class="num">$80</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$700</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="18" height="5" rx="2.5"/></svg>$100/hr</span></span></td>
+                  <td class="num">4 · 26h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Aug 29</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Vine &amp; Co"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">6:30p–2:00a</td>
+                  <td class="num hrs">7.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$466</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="16" height="5" rx="2.5"/></svg>$62/hr</span></span></td>
+                  <td class="num">$124</td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$590</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="15" height="5" rx="2.5"/></svg>$79/hr</span></span></td>
+                  <td class="num">3 · 19h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 19</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–1:30a</td>
+                  <td class="num hrs">8</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$412</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="13" height="5" rx="2.5"/></svg>$52/hr</span></span></td>
+                  <td class="num">$132</td>
+                  <td class="num">$40</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$584</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="13" height="5" rx="2.5"/></svg>$73/hr</span></span></td>
+                  <td class="num">3 · 21h 30m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 5</span></span></td>
+                  <td class="icon-col"><span class="ticon day" title="Day"><svg width="15" height="15"><use href="#i-sun"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">11:30a–7:00p</td>
+                  <td class="num hrs">7</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$154</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="4" height="5" rx="2.5"/></svg>$22/hr</span></span></td>
+                  <td class="num">$115</td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$269</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="5" height="5" rx="2.5"/></svg>$38/hr</span></span></td>
+                  <td class="num">1 · 7h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <ul class="annots">
+          <li class="annot"><b>i</b><span>The density switch in this mockup works: it adds
+            <code>.compact</code> or <code>.roomy</code> to the table below it. Nothing else on this page
+            clicks.</span></li>
+          <li class="annot"><b>i</b><span>Sorting by <em>Tips</em> sorts by the rate, not the amount — a $154
+            day and a $505 party night are not comparable, and the rate chip is what the column is read
+            for.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================ 04 ============================== -->
+    <section class="block" id="b4">
+      <div class="block-head">
+        <h2><i>04</i>Group headings that stick, fold and compare<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd><code>monthRow()</code> draws a month's name and its totals, then scrolls away.
+            Ten rows down a long month you no longer know which one you are in, and there is no way to skip a
+            month or to see the shape of one.</dd></div>
+          <div><dt>Change</dt><dd>The heading sticks under the column header while its own shifts scroll past; a
+            chevron folds the month away to one line; the income mix rides in it as the Overview's three-step
+            bar; and the month's total carries its move against the month before.</dd></div>
+          <div><dt>Why</dt><dd>It is the log's only structure, and it is doing the least it could. Folding also
+            makes a year of shifts navigable without a second control.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (<code>monthRow()</code> grows a chevron and
+            a mix bar; a <code>state.closedGroups</code> set; grouping by week is one line in the key it groups
+            by, which <code>insights.js</code>'s <code>mondayOf()</code> already gives). CSS: the
+            <code>tr.group</code> block, which replaces <code>tr.month</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">Scroll the table <span>the heading stays under the column header</span></p>
+        <section class="panel">
+          <div class="scrollbox">
+            <table class="shifts">
+              <thead><tr><th>Date</th><th class="icon-col">Type</th><th class="icon-col">Place</th><th>Shift</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Wage</th><th class="num">Other</th><th class="num">Total</th><th class="num">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+              <tbody>
+                <tr class="group"><th colspan="11" scope="colgroup">
+                  <div class="ghdr">
+                    <button type="button" class="icon-btn gtoggle" aria-expanded="true" aria-label="Fold September away"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <span class="gname">September</span>
+                    <span class="gsum">6 shifts · 41h 30m · $1,767 tips · $2,610 total</span>
+                    <span class="gdelta trend up" title="$2,610 against $2,314 in August">▲ 13%</span>
+                    <span class="spacer"></span>
+                    <span class="gmix" data-tips="1767" data-wage="685" data-other="158" title="Tips $1,767 · wage $685 · other $158" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
+                  </div>
+                </th></tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 19</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–1:30a</td>
+                  <td class="num hrs">8</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$412</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="15" height="5" rx="2.5"/></svg>$52/hr</span></span></td>
+                  <td class="num">$132</td><td class="num">$40</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$584</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="16" height="5" rx="2.5"/></svg>$73/hr</span></span></td>
+                  <td class="num">3 · 21h 30m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Fri</span><span class="dm">Sep 18</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">6:00p–12:30a</td>
+                  <td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$268</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="12" height="5" rx="2.5"/></svg>$41/hr</span></span></td>
+                  <td class="num">$107</td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$375</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="13" height="5" rx="2.5"/></svg>$58/hr</span></span></td>
+                  <td class="num">2 · 12h 0m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 12</span></span></td>
+                  <td class="icon-col"><span class="ticon day" title="Day"><svg width="15" height="15"><use href="#i-sun"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Harbour Room"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">11:00a–6:00p</td>
+                  <td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$186</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="8" height="5" rx="2.5"/></svg>$29/hr</span></span></td>
+                  <td class="num">$107</td><td class="num">$25</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$318</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="7" height="5" rx="2.5"/></svg>$49/hr</span></span></td>
+                  <td class="num">2 · 13h 0m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Thu</span><span class="dm">Sep 10</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span><span class="ticon party" title="Party · Ilse 40th · 45 guests"><svg width="13" height="13"><use href="#i-party"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Vine &amp; Co"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">7:00p–2:00a</td>
+                  <td class="num hrs">7</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$505</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="18" height="5" rx="2.5"/></svg>$72/hr</span></span></td>
+                  <td class="num">$115</td><td class="num">$80</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$700</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="18" height="5" rx="2.5"/></svg>$100/hr</span></span></td>
+                  <td class="num">4 · 26h 0m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 5</span></span></td>
+                  <td class="icon-col"><span class="ticon day" title="Day"><svg width="15" height="15"><use href="#i-sun"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">11:30a–7:00p</td>
+                  <td class="num hrs">7</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$154</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="4" height="5" rx="2.5"/></svg>$22/hr</span></span></td>
+                  <td class="num">$115</td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$269</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="5" height="5" rx="2.5"/></svg>$38/hr</span></span></td>
+                  <td class="num">1 · 7h 0m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="group closed"><th colspan="11" scope="colgroup">
+                  <div class="ghdr">
+                    <button type="button" class="icon-btn gtoggle" aria-expanded="false" aria-label="Open August"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <span class="gname">August</span>
+                    <span class="gsum">11 shifts · 78h 15m · $3,210 tips · $4,742 total</span>
+                    <span class="gdelta trend down" title="$4,742 against $5,190 in July">▼ 9%</span>
+                    <span class="spacer"></span>
+                    <span class="ghidden">11 shifts folded</span>
+                  </div>
+                </th></tr>
+                <tr class="group"><th colspan="11" scope="colgroup">
+                  <div class="ghdr">
+                    <button type="button" class="icon-btn gtoggle" aria-expanded="true" aria-label="Fold July away"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <span class="gname">July</span>
+                    <span class="gsum">13 shifts · 94h 45m · $3,486 tips · $5,190 total</span>
+                    <span class="spacer"></span>
+                    <span class="gmix" data-tips="3486" data-wage="1563" data-other="141" title="Tips $3,486 · wage $1,563 · other $141" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
+                  </div>
+                </th></tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Jul 25</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–1:00a</td>
+                  <td class="num hrs">7.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$338</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="11" height="5" rx="2.5"/></svg>$45/hr</span></span></td>
+                  <td class="num">$124</td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$462</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="11" height="5" rx="2.5"/></svg>$62/hr</span></span></td>
+                  <td class="num">2 · 15h 0m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">Grouped by week <span>the same heading, a different key</span></p>
+        <section class="panel">
+          <table class="shifts">
+            <tbody>
+              <tr class="group"><th colspan="11" scope="colgroup">
+                <div class="ghdr">
+                  <button type="button" class="icon-btn gtoggle" aria-expanded="true" aria-label="Fold this week away"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                  <span class="gname">Mon Sep 14 – Sun Sep 20</span>
+                  <span class="gsum">2 shifts · 14h 30m · $680 tips · $959 total</span>
+                  <span class="gdelta trend up" title="$959 against $587 the week before">▲ 63%</span>
+                  <span class="spacer"></span>
+                  <span class="gmix" data-tips="680" data-wage="239" data-other="40" title="Tips $680 · wage $239 · other $40" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
+                </div>
+              </th></tr>
+            </tbody>
+          </table>
+        </section>
+        <p class="annot"><b>i</b><span>Weeks run Monday to Sunday, which is what <code>mondayOf()</code> in
+          <code>insights.js</code> already does for the Overview's by-week chart.</span></p>
+      </div>
+    </section>
+
+    <!-- ============================================================ 05 ============================== -->
+    <section class="block" id="b5">
+      <div class="block-head">
+        <h2><i>05</i>Row states: unfinished, deleted, party<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>A row says nothing about how complete it is, and a deleted row has to be opened
+            in the form and saved to come back ("Save and restore"). A row with no date, no times or no income
+            just shows dashes.</dd></div>
+          <div><dt>Change</dt><dd>Five states drawn once: a shift still to be finished (an amber dot after the
+            date, the reason on hover), a deleted one with its own Restore where the bin was, the party badge as
+            it is today, a row that just changed (the flash the live feed already triggers) and the armed
+            delete.</dd></div>
+          <div><dt>Why</dt><dd>Leaving a shift half-filled is a feature — "fill in as little or as much as you
+            know right now" — so the log needs to show which ones are waiting without calling them errors. And
+            restoring something you deleted by accident should not be a trip through the form.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (<code>shiftRow()</code>: a flag when
+            <code>start_at</code>/<code>end_at</code> or all income is missing, and a Restore button that
+            re-<code>PUT</code>s the row the page already holds — <code>shiftStore.put</code> clears
+            <code>deleted_at</code>, so no new endpoint). CSS: <code>.flagdot</code>,
+            <code>tr.shift.needs</code>, <code>.icon-btn.restore</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">One of each <span>hover a date or a figure for the detail, as now</span></p>
+        <section class="panel">
+          <div class="scroll">
+            <table class="shifts">
+              <thead><tr><th>Date</th><th class="icon-col">Type</th><th class="icon-col">Place</th><th>Shift</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Wage</th><th class="num">Other</th><th class="num">Total</th><th class="num">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+              <tbody>
+                <tr class="shift">
+                  <td class="when day" title="The Fox · with Leo, Mara · busy, two walkouts"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 19</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–1:30a</td>
+                  <td class="num hrs">8</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$412</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="15" height="5" rx="2.5"/></svg>$52/hr</span></span></td>
+                  <td class="num">$132</td><td class="num">$40</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$584</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="16" height="5" rx="2.5"/></svg>$73/hr</span></span></td>
+                  <td class="num">3 · 21h 30m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift needs">
+                  <td class="when day" title="Nothing earned entered yet"><span class="whengrp"><span class="wd">Fri</span><span class="dm">Sep 18</span><span class="flagdot" title="No tips or other income entered yet"></span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Harbour Room"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">6:00p–12:30a</td>
+                  <td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="muted" title="No tips entered yet">—</span></span></td>
+                  <td class="num">$107</td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$107</span></span></td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Finish this shift"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift needs">
+                  <td class="when day" title="No times set"><span class="whengrp"><span class="wd">Thu</span><span class="dm">Sep 17</span><span class="flagdot" title="No start or end time, so no hours, wage or per-hour figures"></span></span></td>
+                  <td class="icon-col"><span class="muted">—</span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span"><span class="muted" title="No times set">—</span></td>
+                  <td class="num hrs"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$180</span></span></td>
+                  <td class="num"><span class="muted" title="No hours, so no estimated wage">—</span></td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$180</span></span></td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Finish this shift"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift flash">
+                  <td class="when day" title="Just updated in another tab"><span class="whengrp"><span class="wd">Thu</span><span class="dm">Sep 10</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span><span class="ticon party" title="Party · Ilse 40th · 45 guests"><svg width="13" height="13"><use href="#i-party"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Vine &amp; Co"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">7:00p–2:00a</td>
+                  <td class="num hrs">7</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$505</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="18" height="5" rx="2.5"/></svg>$72/hr</span></span></td>
+                  <td class="num">$115</td><td class="num">$80</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$700</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="18" height="5" rx="2.5"/></svg>$100/hr</span></span></td>
+                  <td class="num">4 · 26h 0m</td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 5</span></span></td>
+                  <td class="icon-col"><span class="ticon day" title="Day"><svg width="15" height="15"><use href="#i-sun"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">11:30a–7:00p</td>
+                  <td class="num hrs">7</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$154</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="4" height="5" rx="2.5"/></svg>$22/hr</span></span></td>
+                  <td class="num">$115</td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$269</span><span class="ratechip warn"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill warn" x="0" y="0" width="5" height="5" rx="2.5"/></svg>$38/hr</span></span></td>
+                  <td class="num">1 · 7h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn armed" title="Click again to delete shift 2026-09-05">Delete?</button>
+                  </div></td>
+                </tr>
+                <tr class="shift deleted">
+                  <td class="when day" title="Deleted 2 days ago · a soft delete, so nothing is gone"><span class="whengrp"><span class="wd">Wed</span><span class="dm">Sep 2</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Harbour Room"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–11:30p</td>
+                  <td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$242</span></span></td>
+                  <td class="num">$107</td><td class="num">$15</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$364</span></span></td>
+                  <td class="num">2 · 13h 0m</td>
+                  <td class="actions"><div class="btns">
+                    <button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button>
+                    <button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button>
+                    <button type="button" class="icon-btn restore" title="Restore shift 2026-09-02"><svg width="16" height="16"><use href="#i-restore"></use></svg></button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <ul class="annots">
+          <li class="annot"><b>i</b><span>Rows 2 and 3 are unfinished: no income yet, and no times yet. Amber, a
+            dotted date, and a reason on hover — never a red error, and the row still shows every figure it
+            can.</span></li>
+          <li class="annot"><b>i</b><span>Row 4 is the flash the live feed already paints when a shift changes
+            anywhere (this one animates once when the page loads).</span></li>
+          <li class="annot"><b>i</b><span>Row 5 is the delete waiting for its second click, as built. Row 6 is
+            deleted, and offers Restore instead.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================ 06 ============================== -->
+    <section class="block" id="b6">
+      <div class="block-head">
+        <h2><i>06</i>The unfinished-shifts nudge<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>Nothing tells you a shift you started logging on the way home was never
+            finished. It sits in the table with dashes, and you find it by accident.</dd></div>
+          <div><dt>Change</dt><dd>One line above the table when any loaded shift is missing its times or its
+            income, with a button that filters the log down to them (the <em>Unfinished</em> toggle from block
+            01) and a way to leave it alone.</dd></div>
+          <div><dt>Why</dt><dd>It is the one thing the log knows that you would want to be told, rather than
+            have to look for. It is also what makes half-filled shifts safe to encourage.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (a count while rows are built, and a
+            dismissal that lasts the session). CSS: <code>.nudge</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <section class="panel">
+          <div class="panel-head"><h2>Shift log</h2></div>
+          <div class="nudge">
+            <svg aria-hidden="true"><use href="#i-alert"></use></svg>
+            <p><b>3 shifts are waiting to be finished</b> — two have no tips yet and one has no times, so its
+              hours, wage and per-hour figures are blank.</p>
+            <span class="spacer"></span>
+            <button type="button" class="btn">Show them</button>
+            <button type="button" class="linkbtn">Not now</button>
+          </div>
+          <div class="scroll">
+            <table class="shifts">
+              <thead><tr><th>Date</th><th class="icon-col">Type</th><th class="icon-col">Place</th><th>Shift</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Wage</th><th class="num">Other</th><th class="num">Total</th><th class="num">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+              <tbody>
+                <tr class="shift needs">
+                  <td class="when day"><span class="whengrp"><span class="wd">Fri</span><span class="dm">Sep 18</span><span class="flagdot" title="No tips or other income entered yet"></span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Harbour Room"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">6:00p–12:30a</td>
+                  <td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="muted">—</span></span></td>
+                  <td class="num">$107</td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$107</span></span></td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Finish this shift"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift needs">
+                  <td class="when day"><span class="whengrp"><span class="wd">Thu</span><span class="dm">Sep 17</span><span class="flagdot" title="No start or end time"></span></span></td>
+                  <td class="icon-col"><span class="muted">—</span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span"><span class="muted">—</span></td>
+                  <td class="num hrs"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$180</span></span></td>
+                  <td class="num"><span class="muted">—</span></td><td class="num"><span class="muted">—</span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$180</span></span></td>
+                  <td class="num"><span class="muted">—</span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Finish this shift"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <div class="callout"><b>Keep it a nudge.</b> A shift with nothing in it is valid and always will be
+          (invariant 4), so this line counts and offers, and never blocks, colours a row red, or appears when
+          there is nothing waiting.</div>
+      </div>
+    </section>
+
+    <!-- ============================================================ 07 ============================== -->
+    <section class="block" id="b7">
+      <div class="block-head">
+        <h2><i>07</i>A table foot instead of a standing note<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>Four sentences of legend sit under the table for good, above a full-width
+            <em>Load older shifts</em> button, and nothing says what stretch of time is on screen or how much of
+            it is unloaded.</dd></div>
+          <div><dt>Change</dt><dd>One foot line: how many shifts are loaded and the dates they cover, the
+            caveat about a partial oldest month kept in plain sight, <em>Load older</em> as an ordinary button,
+            and the legend folded into a <code>&lt;details&gt;</code> that remembers being open.</dd></div>
+          <div><dt>Why</dt><dd>The legend is read once; the "how far back does this go" question is asked every
+            time, and the log cannot answer it today.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (the foot replaces <code>#more</code> and
+            <code>.tablenote</code>; the oldest loaded date is already known — it is the paging cursor). CSS:
+            <code>.logfoot</code>, <code>.collegend</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <section class="panel">
+          <table class="shifts">
+            <tbody>
+              <tr class="shift">
+                <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Jul 4</span></span></td>
+                <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                <td class="span">5:00p–1:00a</td>
+                <td class="num hrs">7.5</td>
+                <td class="num money"><span class="moneygrp"><span class="amt">$296</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="10" height="5" rx="2.5"/></svg>$39/hr</span></span></td>
+                <td class="num">$124</td><td class="num"><span class="muted">—</span></td>
+                <td class="num money"><span class="moneygrp"><span class="amt">$420</span><span class="ratechip good"><svg class="rbar" viewBox="0 0 18 5" width="18" height="5" aria-hidden="true"><rect class="rbartrack" x="0" y="0" width="18" height="5" rx="2.5"/><rect class="rbarfill good" x="0" y="0" width="10" height="5" rx="2.5"/></svg>$56/hr</span></span></td>
+                <td class="num">2 · 14h 0m</td>
+                <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button><button type="button" class="icon-btn danger" title="Delete"><svg width="16" height="16"><use href="#i-trash"></use></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="logfoot">
+            <span><b>43</b> shifts loaded · <b>Jul 4</b> to <b>Sep 19</b> · July may be part of a longer month</span>
+            <span class="spacer"></span>
+            <details class="collegend">
+              <summary>What the columns mean</summary>
+              <dl>
+                <dt>Hours</dt><dd>Time worked: the shift's length minus its breaks, which are unpaid.</dd>
+                <dt>Tips, Total</dt><dd>Whole dollars, with the per-hour rate beside them — green when it beat
+                  your average over the shifts on screen, amber when it fell short, and the bar showing where in
+                  their spread it sits.</dd>
+                <dt>Wage</dt><dd>Never entered: time worked × the hourly rate in effect that day.</dd>
+                <dt>Crew</dt><dd>Bartenders including you, and their hours together.</dd>
+                <dt>Anywhere</dt><dd>Hover a figure for the exact cents and how it was worked out.</dd>
+              </dl>
+            </details>
+            <button type="button" class="btn">Load older shifts</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================================================ 08 ============================== -->
+    <section class="block" id="b8">
+      <div class="block-head">
+        <h2><i>08</i>Empty, filtered-empty and loading<span class="flag core">core</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>One line covers everything: "No shifts yet. Add your first with + New shift."
+            A filter that matches nothing would show the same line, and while the first snapshot is in flight the
+            table is simply blank.</dd></div>
+          <div><dt>Change</dt><dd>Three states, each saying what is actually going on and offering the way out
+            of it.</dd></div>
+          <div><dt>Why</dt><dd>"No shifts" when you have 400 of them and a filter on is the kind of thing that
+            makes you reload the page.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (three branches where <code>#empty</code> is
+            toggled, and a flag for "no snapshot yet"). CSS: <code>.empty-rich</code>, <code>.skel</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">First run</p>
+        <section class="panel">
+          <div class="panel-head"><h2>Shift log</h2></div>
+          <div class="empty-rich">
+            <svg aria-hidden="true"><use href="#i-calendar"></use></svg>
+            <h3>No shifts logged yet</h3>
+            <p>Log one and this table fills in: hours, tips, the wage worked out from your hourly rate, and what
+              each night came to per hour. Nothing is required — save as little as you know now.</p>
+            <div class="acts">
+              <button type="button" class="btn btn-primary"><svg width="15" height="15"><use href="#i-plus"></use></svg> New shift</button>
+              <button type="button" class="btn">Set your hourly wage</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">A filter that matches nothing</p>
+        <section class="panel">
+          <div class="panel-head"><h2>Shift log</h2></div>
+          <div class="fchips">
+            <span class="fcount"><b>0</b> of 43 shifts</span>
+            <button type="button" class="fchip">Last 30 days <span class="chipx" aria-hidden="true">✕</span></button>
+            <button type="button" class="fchip"><b>Day</b> <span class="chipx" aria-hidden="true">✕</span></button>
+            <button type="button" class="fchip">Vine &amp; Co <span class="chipx" aria-hidden="true">✕</span></button>
+            <button type="button" class="linkbtn">Clear all</button>
+          </div>
+          <div class="empty-rich">
+            <svg aria-hidden="true"><use href="#i-filter"></use></svg>
+            <h3>No day shifts at Vine &amp; Co in the last 30 days</h3>
+            <p>There are 4 of them further back, and 43 shifts loaded in all.</p>
+            <div class="acts">
+              <button type="button" class="btn">Widen to 90 days</button>
+              <button type="button" class="btn">Clear filters</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="frame">
+        <p class="frame-cap">Loading <span>the first snapshot, before any row has arrived</span></p>
+        <section class="panel">
+          <div class="panel-head"><h2>Shift log</h2><span class="muted">Loading your shifts…</span></div>
+          <div class="skel" aria-hidden="true">
+            <div class="skelrow"><i class="short"></i><i class="short"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="short"></i></div>
+            <div class="skelrow"><i></i><i class="short"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="short"></i></div>
+            <div class="skelrow"><i class="short"></i><i class="short"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="short"></i></div>
+            <div class="skelrow"><i></i><i class="short"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="short"></i></div>
+            <div class="skelrow"><i class="short"></i><i class="short"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="mid"></i><i class="short"></i></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================================================ 09 ============================== -->
+    <section class="block" id="b9">
+      <div class="block-head">
+        <h2><i>09</i>Picking several rows<span class="flag opt">optional</span></h2>
+        <dl class="notes">
+          <div><dt>Today</dt><dd>Everything is one row at a time: delete, restore, tag, edit.</dd></div>
+          <div><dt>Change</dt><dd>A checkbox column, and a bar at the foot of the table's own scroller for what
+            can be done to the picked rows: tag them, delete them, restore them, export just those.</dd></div>
+          <div><dt>Why, and why last</dt><dd>It earns its keep on a tidy-up (tagging a run of shifts at a place
+            you have just named, restoring three you deleted by mistake) and on nothing else. It is the only
+            block that adds a mode to a page whose rows currently do nothing when clicked, and it needs a
+            <code>PATCH</code> per row, so it should only be built if the tidy-up turns out to be
+            real.</dd></div>
+          <div><dt>Costs</dt><dd><code>dashboard/index.html</code> (a selection set, the column, the bar,
+            shift-click for a range). CSS: <code>.pickcol</code>, <code>tr.shift.picked</code>,
+            <code>.bulkbar</code>.</dd></div>
+        </dl>
+      </div>
+
+      <div class="frame">
+        <section class="panel">
+          <div class="scroll">
+            <table class="shifts">
+              <thead><tr>
+                <th class="pickcol"><input type="checkbox" aria-label="Pick every shift on screen"></th>
+                <th>Date</th><th class="icon-col">Type</th><th class="icon-col">Place</th><th>Shift</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Total</th><th class="actions"><span class="sr">Actions</span></th>
+              </tr></thead>
+              <tbody>
+                <tr class="shift picked">
+                  <td class="pickcol"><input type="checkbox" checked aria-label="Pick Sep 19"></td>
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 19</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">5:00p–1:30a</td><td class="num hrs">8</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$412</span></span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$584</span></span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift picked">
+                  <td class="pickcol"><input type="checkbox" checked aria-label="Pick Sep 18"></td>
+                  <td class="when day"><span class="whengrp"><span class="wd">Fri</span><span class="dm">Sep 18</span></span></td>
+                  <td class="icon-col"><span class="ticon night" title="Night"><svg width="15" height="15"><use href="#i-moon"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="The Fox"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">6:00p–12:30a</td><td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$268</span></span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$375</span></span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button></div></td>
+                </tr>
+                <tr class="shift">
+                  <td class="pickcol"><input type="checkbox" aria-label="Pick Sep 12"></td>
+                  <td class="when day"><span class="whengrp"><span class="wd">Sat</span><span class="dm">Sep 12</span></span></td>
+                  <td class="icon-col"><span class="ticon day" title="Day"><svg width="15" height="15"><use href="#i-sun"></use></svg></span></td>
+                  <td class="icon-col"><span class="ticon pin" title="Harbour Room"><svg width="15" height="15"><use href="#i-pin"></use></svg></span></td>
+                  <td class="span">11:00a–6:00p</td><td class="num hrs">6.5</td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$186</span></span></td>
+                  <td class="num money"><span class="moneygrp"><span class="amt">$318</span></span></td>
+                  <td class="actions"><div class="btns"><button type="button" class="icon-btn" title="Edit"><svg width="16" height="16"><use href="#i-edit"></use></svg></button><button type="button" class="icon-btn" title="Preview"><svg width="16" height="16"><use href="#i-details"></use></svg></button></div></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="bulkbar">
+              <span><b>2</b> shifts picked · $680 tips · $959 total</span>
+              <span class="spacer"></span>
+              <button type="button" class="btn">Add a tag</button>
+              <button type="button" class="btn">Export these</button>
+              <button type="button" class="btn btn-danger">Delete</button>
+              <button type="button" class="linkbtn">Clear</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================================================ closing ========================== -->
+    <section class="block" id="order">
+      <div class="block-head">
+        <h2>If any of it ships</h2>
+        <dl class="notes">
+          <div><dt>Order</dt><dd>03 (sorting and density) and 07 (the foot) are nearly free and change nothing
+            else. 01 (filters) is the one everything else leans on — the totals strip, the empty states and the
+            nudge all read the filter. 02, 04, 05, 06 and 08 are independent of each other once 01 exists. 09
+            is a maybe.</dd></div>
+          <div><dt>Where</dt><dd>All of it is <code>dashboard/index.html</code>'s
+            <code>renderShifts()</code>, <code>shiftRow()</code> and <code>monthRow()</code>, plus the rules in
+            <code>proposed.css</code> folded into <code>dashboard/styles.css</code> under its shift-table
+            section. No server change, no schema change, nothing stored: every figure here is already derived on
+            each draw by <code>pay.js</code> and <code>insights.js</code>.</dd></div>
+          <div><dt>Rules kept</dt><dd>No markup built from strings (the page is <code>textContent</code> and
+            <code>createElement</code> only, and a test enforces it), no inline <code>style</code> attributes
+            (the CSP forbids them — hence the rate bar being SVG geometry, which blocks 02 and 04 follow with
+            the mix bar's fixed steps), whole dollars in the table with the cents on hover, and every new colour
+            taken from the tokens.</dd></div>
+          <div><dt>Then</dt><dd><code>README.md</code>'s dashboard section and
+            <code>ARCHITECTURE.md</code>'s "The dashboard's look" describe the table as it is today, down to the
+            columns; whatever ships has to be written back into both.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+// The only behaviour in this mockup: the theme switch, and the density switch in block 03.
+const themePills = document.getElementById('themePills');
+themePills.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-theme]');
+  if (!btn) return;
+  for (const b of themePills.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === btn));
+  if (btn.dataset.theme) document.body.dataset.theme = btn.dataset.theme;
+  else delete document.body.dataset.theme;
+});
+
+const densityDemo = document.getElementById('densityDemo');
+document.getElementById('densitySeg').addEventListener('change', (ev) => {
+  densityDemo.classList.remove('compact', 'roomy');
+  if (ev.target.value) densityDemo.classList.add(ev.target.value);
+});
+
+// The income mix in a group heading: each part's share set on the element, as viz.js does for every bar it
+// draws (the CSSOM is allowed where a style attribute in the markup would be refused by the CSP).
+for (const mix of document.querySelectorAll('.gmix')) {
+  const parts = [mix.dataset.tips, mix.dataset.wage, mix.dataset.other].map(Number);
+  [...mix.children].forEach((part, i) => { part.style.flexGrow = String(parts[i] || 0); });
+}
+</script>
+</body>
+</html>
