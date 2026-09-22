@@ -10,10 +10,10 @@ const GROUPS = [
   { id: 'lists', label: 'Lists' },
 ];
 const PAGES = [
-  { id: 'overview', label: 'Overview', group: 'shift', section: 'Browse' },
-  { id: 'calendar', label: 'Calendar', group: 'shift', section: 'Browse' },
-  { id: 'shifts', label: 'Shifts', group: 'shift', section: 'Browse' },
-  { id: 'feed', label: 'Live feed', group: 'shift', section: 'Browse' },
+  { id: 'overview', label: 'Overview', group: 'shift', section: 'Shift' },
+  { id: 'calendar', label: 'Calendar', group: 'shift', section: 'Shift' },
+  { id: 'shifts', label: 'Log', group: 'shift', section: 'Shift' },
+  { id: 'feed', label: 'Live feed', group: 'shift', section: 'Shift' },
   { id: 'listLocations', label: 'Locations', group: 'lists', section: 'Lists' },
   { id: 'listTypes', label: 'Misc types', group: 'lists', section: 'Lists' },
   { id: 'listRates', label: 'Wage rates', group: 'lists', section: 'Lists' },

@@ -61,6 +61,7 @@
      that group's pages. */
   --rail-bg: #0a1817; --rail-ink: #93aaa5; --rail-ink-hi: #ffffff;
   --rail1: 80px; --rail2: 212px; --rail: calc(var(--rail1) + var(--rail2));
+  --topbar-h: 61px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -129,7 +130,7 @@ button { cursor: pointer; }
 #nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .main { min-width: 0; display: flex; flex-direction: column; }
-.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); min-height: var(--topbar-h); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
 .page { flex: 1; display: grid; align-content: start; gap: var(--sp-4); width: 100%; max-width: 1400px; margin: 0 auto; padding: var(--sp-5) var(--sp-5) var(--sp-7); min-width: 0; }
 .page > * { min-width: 0; }
 .status { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--muted); font-size: var(--fs-small); }
@@ -203,24 +204,31 @@ button { cursor: pointer; }
 
 /* ---- shift table: one line per shift, a column for every figure, so it reads across ------------------------------- */
 .scroll { overflow-x: auto; }
+/* `overflow-x: auto` alone forces `overflow-y` to `auto` too (the CSS spec won't let one axis be
+   `auto` and the other stay `visible`), which quietly makes .scroll a scroll container of its own -
+   and a sticky child sticks to ITS scrollport, not the page's, even though .scroll never scrolls
+   itself unless it's actually bounded. The shift log's header is meant to stick, so its wrapper is
+   given real bounds: one scrolling area, table and header both, rather than a header that silently
+   never sticks because the page scrolls but this box never does. */
+.shiftscroll { overflow-y: auto; max-height: calc(100dvh - var(--topbar-h) - 128px); }
 table { width: 100%; border-collapse: collapse; }
-th { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+th { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
 th:first-child, td:first-child { padding-left: var(--sp-4); }
 th:last-child, td:last-child { padding-right: var(--sp-3); }
 td { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); vertical-align: middle; line-height: 1.35; }
 tbody tr:last-child td { border-bottom: 0; }
 th.num, td.num { text-align: right; }
-table.shifts { min-width: 980px; font-size: 13px; font-variant-numeric: tabular-nums; }
-table.shifts th { padding: var(--sp-2) 8px; letter-spacing: .05em; }
-table.shifts td { padding: 5px 8px; white-space: nowrap; }
+/* capped narrower than the page, with room free to its right for a panel later */
+#paneShifts { max-width: 900px; }
+table.shifts { min-width: 720px; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.shifts th { padding: var(--sp-2) 6px; letter-spacing: .05em; }
+/* the header row rides above the shifts as the page scrolls, docked just under the sticky topbar */
+table.shifts thead th { position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 0 var(--line); }
+table.shifts td { padding: 5px 6px; white-space: nowrap; }
 table.shifts :is(th, td):first-child { padding-left: var(--sp-4); }
 table.shifts td.num { font-variant-numeric: tabular-nums; }
-table.shifts td.rate { color: var(--muted); }
 table.shifts td.hrs { font-weight: 600; }
 table.shifts td.when { font-weight: 600; }
-table.shifts td.kind { min-width: 92px; }
-table.shifts td.kind .badge + .badge { margin-left: 4px; }
-table.shifts td.place { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 table.shifts td.span { color: var(--muted); }
 table.shifts td.actions { padding-right: var(--sp-2); }
 tr.shift { transition: background-color .12s; }
@@ -228,10 +236,42 @@ tr.shift:hover { background: var(--hover); }
 tr.deleted td:not(.actions) { opacity: .5; }
 tr.deleted .day { text-decoration: line-through; }
 
-.badge { display: inline-block; padding: 0 var(--sp-2); border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; line-height: 1.6; letter-spacing: .05em; text-transform: uppercase; }
-.badge-day { background: var(--day-soft); color: var(--day); }
-.badge-night { background: var(--night-soft); color: var(--night); }
-.badge-party { background: var(--party-soft); color: var(--party); }
+/* the date column: weekday leads in its own muted column, so every row's weekday lines up above the next;
+   the date itself follows, set apart by weight rather than a separator. The flex layout lives on an inner
+   span, not the <td> itself - a <td> whose own display is overridden to flex/grid stops behaving like a
+   table cell (it shrinks to its content's height instead of filling and centering in the row), so it would
+   sit high in a taller row while every plain cell beside it stays vertically centered. */
+table.shifts td.when .whengrp { display: flex; align-items: baseline; gap: var(--sp-2); }
+table.shifts td.when .wd { flex: 0 0 2.4em; font-size: var(--fs-small); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+table.shifts td.when .dm { font-weight: 600; }
+
+/* type and place are secondary to the figures beside them: an icon with the detail on hover, not a column of text */
+table.shifts td.icon-col { width: 1%; text-align: center; }
+.ticon { display: inline-flex; }
+.ticon svg { display: block; }
+.ticon.day { color: var(--day); }
+.ticon.night { color: var(--night); }
+.ticon.party { color: var(--party); margin-left: 2px; }
+.ticon.pin { color: var(--muted); }
+
+/* a money figure with its per-hour rate trailing in a small chip, coloured by whether that rate beat this list's
+   own average for the figure - the same green/amber the rest of the app uses for "good" and "under". The chip
+   gets its own fixed-width track (on the inner wrapper, for the same table-cell-height reason as .when above),
+   not a size-to-content one, so the dollar figure lands in the same spot whether or not that row has a chip at
+   all - a flex group right-justified as a unit would shove the amount left or right by however wide (or absent)
+   the chip happens to be, row to row. */
+table.shifts td.money .moneygrp { display: grid; grid-template-columns: minmax(0, 1fr) 64px; column-gap: var(--sp-2); align-items: baseline; justify-items: end; }
+table.shifts td.money .amt { font-weight: 600; }
+.ratechip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 5px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; white-space: nowrap; }
+.ratechip.good { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.ratechip.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+/* the bar: not just "above or below average" (one bit) but where in this list's own spread the rate actually
+   falls, so a shift barely under average and a genuinely bad one no longer look the same. SVG geometry, not a
+   CSS width, since the app's CSP (style-src 'self') won't allow an inline style attribute to set one per row. */
+.rbar { display: inline-block; vertical-align: middle; flex: none; }
+.rbartrack { fill: color-mix(in srgb, currentColor 20%, transparent); }
+.rbarfill.good { fill: var(--good); }
+.rbarfill.warn { fill: var(--warn); }
 tr.shift:has(+ tr.detail) td { border-bottom: 0; }
 tr.detail td { padding: var(--sp-2) var(--sp-4) var(--sp-4); background: var(--field); }
 .facts-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px var(--sp-5); margin: 0 0 var(--sp-3); font-size: var(--fs-small); }
@@ -696,7 +736,6 @@ body:has(dialog[open]) { overflow: hidden; }
   .tier-foot { grid-template-columns: minmax(0, 1fr); }
   .addbar { padding: var(--sp-3) var(--sp-3) 0; }
   .rowbtn { min-height: 40px; }
-  .place { max-width: 40vw; }
   ol.feed li { padding: var(--sp-3) var(--sp-4); }
 
   /* inputs are 16px so phones don't zoom */

@@ -60,18 +60,18 @@
     </section>
     <section id="paneShifts" class="panel" data-tab="shifts" hidden>
       <div class="panel-head">
-        <h2>Shifts</h2>
+        <h2>Shift log</h2>
         <div class="toolbar">
           <label class="check"><input id="showDeleted" type="checkbox"> Show deleted</label>
         </div>
       </div>
-      <div class="scroll">
+      <div class="scroll shiftscroll">
         <table class="shifts">
-          <thead><tr><th>Date</th><th>Type</th><th>Place</th><th>Shift</th><th class="num" title="Hours worked: the shift's length minus breaks">Hours</th><th class="num">Tips</th><th class="num" title="Tips per hour worked">Tips/hr</th><th class="num" title="Estimated from your hourly rate">Wage</th><th class="num" title="Other income">Other</th><th class="num" title="Tips + wage + other">Total</th><th class="num" title="Total income per hour worked">Total/hr</th><th class="num" title="Bartenders on the shift (you included) and their combined hours">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
+          <thead><tr><th>Date</th><th class="icon-col" title="Day or night">Type</th><th class="icon-col" title="Where">Place</th><th>Shift</th><th class="num" title="Hours worked, decimal: the shift's length minus breaks">Hours</th><th class="num" title="Tips, then tips per hour worked - coloured when it beat your average">Tips</th><th class="num" title="Estimated from your hourly rate">Wage</th><th class="num" title="Other income">Other</th><th class="num" title="Tips + wage + other, then per hour worked - coloured when it beat your average">Total</th><th class="num" title="Bartenders on the shift (you included) and their combined hours">Crew</th><th class="actions"><span class="sr">Actions</span></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="tablenote muted">Whole dollars; hover a figure for cents. Per-hour columns use hours worked (length minus breaks). Wage is estimated from your hourly rate. Crew is bartenders including you, with their combined hours. The arrow opens breaks, crew, party, notes and raw data.</p>
+      <p class="tablenote muted">Whole dollars; hover a figure for cents. Tips and Total show their per-hour rate alongside them, in green when it beat your average here and amber when it didn't. Wage is estimated from your hourly rate. Crew is bartenders including you, with their combined hours. The arrow opens breaks, crew, party, notes and raw data.</p>
       <div id="empty" class="empty" hidden>No shifts yet. Add your first with <b>+ New shift</b>.</div>
       <button id="more" class="more" type="button" hidden>Load older shifts</button>
     </section>
@@ -416,16 +416,31 @@ function dateLabel(workDate) {
   const at = new Date(Date.UTC(y, m - 1, d));
   return `${WEEKDAY.format(at)}, ${MONTH.format(at)} ${d}` + (y === new Date().getFullYear() ? '' : ' ’' + String(y).slice(2));
 }
+// The same date, split so a weekday column lines up above another: the shift table leads with it, set apart from
+// the day and month that follow.
+function dateParts(workDate) {
+  const [y, m, d] = workDate.split('-').map(Number);
+  const at = new Date(Date.UTC(y, m - 1, d));
+  return { weekday: WEEKDAY.format(at), date: `${MONTH.format(at)} ${d}` + (y === new Date().getFullYear() ? '' : ' ’' + String(y).slice(2)) };
+}
+// Total paid time as one decimal number ("7.5"), not "7h 30m" - the exact h/m breakdown is still a hover away.
+function hoursDecimal(minutes) {
+  return ((Math.round((minutes / 60) * 100) / 100).toFixed(2)).replace(/\.?0+$/, '') || '0';
+}
 
 // Small line icons, built with DOM calls (the page never assembles markup from strings).
 const ICONS = {
   edit: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'],
   details: ['M6 9l6 6 6-6'],
   trash: ['M3 6h18', 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2', 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', 'M10 11v6', 'M14 11v6'],
+  sun: ['M7 12a5 5 0 1 0 10 0 5 5 0 0 0 -10 0z', 'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'],
+  moon: ['M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'],
+  party: ['M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z'],
+  pin: ['M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z', 'M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
 };
-function icon(name) {
+function icon(name, size = 16) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) svg.setAttribute(k, v);
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: String(size), height: String(size), fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) svg.setAttribute(k, v);
   for (const d of ICONS[name]) {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', d);
@@ -553,29 +568,50 @@ const rolesOf = (id) => state.employees.get(id)?.roles ?? [];
 // One shift's worked-out figures, from the wage history and roles as they are now (the server derives the same numbers with the same code).
 const derive = (s) => deriveShift(s, [...state.wageRates.values()], rolesOf);
 
-// One money cell: the amount in whole dollars, and what it comes to per hour worked underneath. Hovering gives the
-// exact figures. Nothing entered shows a dash.
-function amountCell(label, cents, perHour, { note = '' } = {}) {
+// A little filled bar (0-100%) showing where a value sits between this list's own min and max for that figure -
+// a single green/amber dot only ever said "above or below average"; the bar shows how far above or below. Built
+// as SVG geometry rather than a CSS width, since the app's CSP (style-src 'self') refuses an inline style attribute.
+const RBAR_W = 18, RBAR_H = 5;
+function rangeBar(cents, min, max, good) {
+  const pct = max > min ? Math.max(0, Math.min(100, (cents - min) / (max - min))) : 1;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [k, v] of Object.entries({ class: 'rbar', viewBox: `0 0 ${RBAR_W} ${RBAR_H}`, width: String(RBAR_W), height: String(RBAR_H), 'aria-hidden': 'true' })) svg.setAttribute(k, v);
+  const track = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  for (const [k, v] of Object.entries({ class: 'rbartrack', x: '0', y: '0', width: String(RBAR_W), height: String(RBAR_H), rx: String(RBAR_H / 2) })) track.setAttribute(k, v);
+  const fill = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  for (const [k, v] of Object.entries({ class: 'rbarfill ' + (good ? 'good' : 'warn'), x: '0', y: '0', width: String(Math.round(pct * RBAR_W)), height: String(RBAR_H), rx: String(RBAR_H / 2) })) fill.setAttribute(k, v);
+  svg.append(track, fill);
+  return svg;
+}
+
+// A money + rate cell: the amount in whole dollars, trailing what it comes to per hour worked as a small bar (its
+// position between this list's lowest and highest for the figure) and the number itself - green when that rate met
+// or beat `spread.avg`, amber when it fell short. Hovering gives the exact figures. Nothing entered shows a dash.
+function moneyRateCell(cents, perHourCents, spread, note = '') {
   const has = cents > 0;
-  const exact = usd(cents) + (perHour === null ? '' : ' · ' + usd(perHour) + '/hr');
-  return h('td', { class: 'num', 'data-label': label, title: has ? exact + (note ? '\n' + note : '') : null },
-    has ? h('div', { class: 'amt' }, usd0(cents)) : h('span', { class: 'muted' }, '—'),
-    has ? h('div', { class: 'sub' }, perHour === null ? '—' : usd0(perHour) + '/hr') : null);
+  const exact = has ? usd(cents) + (perHourCents == null ? '' : ' · ' + usd(perHourCents) + '/hr') : null;
+  const showRate = has && perHourCents != null && spread.avg != null;
+  const good = showRate && perHourCents >= spread.avg;
+  const chip = showRate
+    ? h('span', { class: 'ratechip ' + (good ? 'good' : 'warn') }, rangeBar(perHourCents, spread.min, spread.max, good), usd0(perHourCents) + '/hr')
+    : null;
+  return h('td', { class: 'num money', title: has ? exact + (note ? '\n' + note : '') : null },
+    h('span', { class: 'moneygrp' }, has ? h('span', { class: 'amt' }, usd0(cents)) : dash(), chip));
 }
 
 function iconButton(act, name, label, extra = {}) {
   return h('button', { type: 'button', class: 'icon-btn' + (extra.class ? ' ' + extra.class : ''), 'data-act': act, title: label, 'aria-label': label, ...extra.attrs }, extra.text ?? icon(name));
 }
 
-// One line per shift, and a column for every figure (each per-hour figure has its own), so the table reads across without
-// subtext. The arrow opens what doesn't fit a cell: breaks, who worked, party, notes and the raw record.
-const COLS = 13;
+// One line per shift, and a column for every figure, so the table reads across without subtext. The arrow opens
+// what doesn't fit a cell: breaks, who worked, party, notes and the raw record.
+const COLS = 11;
 const dash = (why) => h('span', { class: 'muted', title: why || null }, '—');
 function shortTime(dt) {
   const [hh, mm] = dt.slice(11, 16).split(':').map(Number);
   return (hh % 12 || 12) + ':' + String(mm).padStart(2, '0') + (hh < 12 ? 'a' : 'p');
 }
-function shiftRow(s) {
+function shiftRow(s, avg) {
   const open = state.drawer === s.id;
   const flashing = Date.now() - (state.flash.get(s.id) || 0) < 1700;
   const armed = state.armed === s.id;
@@ -588,28 +624,31 @@ function shiftRow(s) {
   const where = [locationName(s), names.length ? 'with ' + names.join(', ') : '', partyText, s.tags.join(', '), s.notes].filter(Boolean);
   const breaksOff = s.breaks.length ? ` (${s.breaks.length === 1 ? 'a break' : s.breaks.length + ' breaks'} not counted)` : '';
   const money = (cents, title) => h('td', { class: 'num', title: cents > 0 ? title ?? usd(cents) : null }, cents > 0 ? usd0(cents) : dash());
-  const rate = (cents, has) => h('td', { class: 'num rate' }, has && cents ? usd0(cents) : dash());
   const other = s.money_entries.filter((m) => !isTips(m));
+  const place = locationName(s);
   const staffNote = s.employees.length
     ? `${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'} including you, ${hoursText(d.bartender_minutes)} between you\nTips made by everyone on the shift: ${usd(d.staff_tips_cents)}` + (d.staff_tips_per_bartender_hour_cents === null ? '' : ` (${usd(d.staff_tips_per_bartender_hour_cents)} per bartender hour)`)
     : null;
   const shiftName = s.work_date || 'this shift';
+  const dp = s.work_date ? dateParts(s.work_date) : null;
   const tr = h('tr', { class: 'shift' + (s.deleted_at ? ' deleted' : '') + (flashing ? ' flash' : ''), 'data-id': s.id },
-    h('td', { class: 'when day', title: where.join(' · ') || null }, s.work_date ? dateLabel(s.work_date) : dash('No date set')),
-    h('td', { class: 'kind' }, s.shift_type ? h('span', { class: 'badge badge-' + s.shift_type }, s.shift_type) : null, d.has_party ? h('span', { class: 'badge badge-party', title: partyText }, 'Party') : null),
-    h('td', { class: 'place' }, locationName(s) || dash()),
+    h('td', { class: 'when day', title: where.join(' · ') || null },
+      h('span', { class: 'whengrp' }, dp ? h('span', { class: 'wd' }, dp.weekday) : null, dp ? h('span', { class: 'dm' }, dp.date) : dash('No date set'))),
+    h('td', { class: 'icon-col' },
+      s.shift_type ? h('span', { class: 'ticon ' + s.shift_type, title: s.shift_type === 'day' ? 'Day' : 'Night' }, icon(s.shift_type === 'day' ? 'sun' : 'moon', 15)) : null,
+      d.has_party ? h('span', { class: 'ticon party', title: partyText || 'Party' }, icon('party', 13)) : null,
+      s.shift_type || d.has_party ? null : dash()),
+    h('td', { class: 'icon-col' }, place ? h('span', { class: 'ticon pin', title: place }, icon('pin', 15)) : dash()),
     s.start_at && s.end_at
       ? h('td', { class: 'span', title: 'Ran ' + fmtTime(s.start_at) + ' to ' + fmtTime(s.end_at) }, shortTime(s.start_at) + '–' + shortTime(s.end_at))
       : h('td', { class: 'span' }, dash('No times set')),
-    h('td', { class: 'num hrs', title: (d.paid_minutes / 60).toFixed(2) + ' hours worked' + breaksOff }, hoursText(d.paid_minutes)),
-    money(d.tips_cents),
-    rate(d.tips_per_hour_cents, d.tips_cents > 0),
+    h('td', { class: 'num hrs', title: hoursText(d.paid_minutes) + ' worked' + breaksOff }, hoursDecimal(d.paid_minutes)),
+    moneyRateCell(d.tips_cents, d.tips_per_hour_cents, avg.tips),
     d.estimated_wage_cents === null
       ? h('td', { class: 'num' }, dash('No hourly rate applies to this date'))
       : money(d.estimated_wage_cents, usd(d.estimated_wage_cents) + '\n' + hoursText(d.paid_minutes) + ' × ' + usd(d.wage_rate_cents) + '/hr'),
     money(d.other_income_cents, other.map((m) => incomeName(m) + ' ' + usd(m.value_cents)).join('\n')),
-    money(d.total_income_cents, usd(d.total_income_cents) + (d.estimated_wage_cents === null ? '\nNot including wage: no hourly rate applies to this date' : '')),
-    rate(d.total_per_hour_cents, d.total_income_cents > 0),
+    moneyRateCell(d.total_income_cents, d.total_per_hour_cents, avg.total, d.estimated_wage_cents === null ? 'Not including wage: no hourly rate applies to this date' : ''),
     s.employees.length ? h('td', { class: 'num', title: staffNote }, d.bartender_count + ' · ' + hoursText(d.bartender_minutes)) : h('td', { class: 'num' }, dash()),
     h('td', { class: 'actions' }, h('div', { class: 'btns' },
       iconButton('edit', 'edit', 'Edit shift ' + shiftName),
@@ -726,6 +765,15 @@ function renderShifts() {
   const list = [...state.shifts.values()]
     .filter((s) => showDeleted || !s.deleted_at)
     .sort((a, b) => (startKey(a) < startKey(b) ? 1 : startKey(a) > startKey(b) ? -1 : a.id < b.id ? 1 : -1));
+  // What the Tips and Total rate chips measure against: this same list's own per-hour figures (so it moves with
+  // whatever is actually on screen), as a mean for the colour and a min-max range for the bar's fill - the colour
+  // alone was only ever "above or below average", which is one bit; the bar shows *where in the spread* it sits.
+  const spread = (vals) => vals.length ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, min: Math.min(...vals), max: Math.max(...vals) } : { avg: null, min: null, max: null };
+  const rates = list.filter((s) => !s.deleted_at).map((s) => derive(s));
+  const avg = {
+    tips: spread(rates.map((d) => d.tips_per_hour_cents).filter((v) => v != null)),
+    total: spread(rates.map((d) => d.total_per_hour_cents).filter((v) => v != null)),
+  };
   // The table is rebuilt on every change (live updates included), so put keyboard focus back on
   // the same row button afterwards instead of dropping it to the page.
   const active = document.activeElement;
@@ -736,7 +784,7 @@ function renderShifts() {
     if (months.at(-1)?.key !== key) months.push({ key, shifts: [] });
     months.at(-1).shifts.push(s);
   }
-  $('rows').replaceChildren(...months.flatMap((m, i) => [monthRow(m.key, m.shifts, state.cursor && i === months.length - 1), ...m.shifts.flatMap(shiftRow)]));
+  $('rows').replaceChildren(...months.flatMap((m, i) => [monthRow(m.key, m.shifts, state.cursor && i === months.length - 1), ...m.shifts.flatMap((s) => shiftRow(s, avg))]));
   if (focusRow) document.querySelector(rowSel(...focusRow))?.focus();
   $('empty').hidden = list.length > 0;
   $('more').hidden = !state.cursor;
