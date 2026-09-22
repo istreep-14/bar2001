@@ -8,7 +8,7 @@ import { TIPS_CATEGORY_ID } from './pay.js';
 // file from a schema version with no migration path is renamed aside (never modified or deleted) and a
 // fresh one is created in its place. Bump this whenever schema.sql changes incompatibly, and add an
 // entry to MIGRATIONS below only when the data is worth carrying over.
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 10;
 const SCHEMA_FILE = join(dirname(fileURLToPath(import.meta.url)), 'schema.sql');
 
 export { TIPS_CATEGORY_ID };
@@ -93,7 +93,84 @@ export const MIGRATIONS = {
       CREATE INDEX parties_shift_id ON parties (shift_id);
     `);
   },
+  // v8 -> v9: employees grow first/last/id_number/manager/is_me, and role becomes many-valued
+  // (employee_roles, same join-table shape as shift_tags). Every existing role is kept as one row.
+  //
+  // Copies the old rows into a plain staging table rather than renaming `employees` out of the way: SQLite's
+  // ALTER TABLE RENAME rewrites *other* tables' REFERENCES clauses to follow the new name, so a rename here
+  // would silently repoint shift_employees.employee_id at "employees_v8" instead of the freshly created
+  // `employees` table. Dropping and recreating under the original name leaves shift_employees' REFERENCES
+  // employees clause (which is never touched) resolving correctly again the moment the new table exists.
+  8(db) {
+    db.exec(`
+      CREATE TABLE employees_v8_old AS SELECT id, name, archived, role, notes FROM employees;
+      DROP TABLE employees;
+      CREATE TABLE employees (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL UNIQUE COLLATE NOCASE CHECK (length(name) BETWEEN 1 AND 100),
+        archived   INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0, 1)),
+        first      TEXT CHECK (first IS NULL OR length(first) BETWEEN 1 AND 60),
+        last       TEXT CHECK (last IS NULL OR length(last) BETWEEN 1 AND 60),
+        id_number  TEXT CHECK (id_number IS NULL OR length(id_number) BETWEEN 1 AND 50),
+        manager    INTEGER NOT NULL DEFAULT 0 CHECK (manager IN (0, 1)),
+        is_me      INTEGER NOT NULL DEFAULT 0 CHECK (is_me IN (0, 1)),
+        notes      TEXT
+      ) STRICT;
+      INSERT INTO employees (id, name, archived, notes)
+        SELECT id, name, archived, notes FROM employees_v8_old ORDER BY rowid;
+      CREATE UNIQUE INDEX employees_is_me ON employees (is_me) WHERE is_me = 1;
+      CREATE TABLE employee_roles (
+        employee_id TEXT NOT NULL REFERENCES employees (id) ON DELETE CASCADE,
+        role        TEXT NOT NULL CHECK (length(role) BETWEEN 1 AND 50),
+        PRIMARY KEY (employee_id, role)
+      ) STRICT;
+      INSERT INTO employee_roles (employee_id, role)
+        SELECT id, role FROM employees_v8_old WHERE role IS NOT NULL AND trim(role) != '' ORDER BY rowid;
+      DROP TABLE employees_v8_old;
+    `);
+  },
+  // v9 -> v10: repairs a database that ran the buggy first cut of the v8->v9 step above, where
+  // ALTER TABLE employees RENAME TO employees_v8 silently repointed shift_employees.employee_id at
+  // "employees_v8" (SQLite rewrites other tables' REFERENCES on a rename), which was then dropped —
+  // leaving shift_employees referencing a table that no longer exists. Recreates shift_employees with
+  // the correct REFERENCES employees clause; a fresh v9 database (which never had the bug) just gets
+  // the same table back unchanged.
+  9(db) {
+    db.exec(`
+      CREATE TABLE shift_employees_v9fix (
+        shift_id    TEXT NOT NULL REFERENCES shifts (id) ON DELETE CASCADE,
+        employee_id TEXT NOT NULL REFERENCES employees (id),
+        start_at    TEXT CHECK (start_at IS NULL OR start_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]'),
+        end_at      TEXT CHECK (end_at   IS NULL OR end_at   GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]'),
+        tips_cents  INTEGER CHECK (tips_cents IS NULL OR tips_cents >= 0),
+        PRIMARY KEY (shift_id, employee_id),
+        CHECK ((start_at IS NULL) = (end_at IS NULL)),
+        CHECK (start_at IS NULL OR end_at > start_at)
+      ) STRICT;
+      INSERT INTO shift_employees_v9fix SELECT shift_id, employee_id, start_at, end_at, tips_cents FROM shift_employees;
+      DROP INDEX shift_employees_employee_id;
+      DROP TABLE shift_employees;
+      ALTER TABLE shift_employees_v9fix RENAME TO shift_employees;
+      CREATE INDEX shift_employees_employee_id ON shift_employees (employee_id);
+    `);
+  },
 };
+
+// Apply schema.sql to a brand new (or just-emptied) file. Called under the upgrade lock for a real
+// file, so two processes racing to create the same database can't both try to create its tables.
+function ensureSchema(path) {
+  const db = new DatabaseSync(path);
+  try {
+    if (db.prepare('PRAGMA user_version').get().user_version === 0) {
+      transaction(db, () => {
+        db.exec(readFileSync(SCHEMA_FILE, 'utf8'));
+        db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      });
+    }
+  } finally {
+    db.close();
+  }
+}
 
 export function openDb(path = ':memory:') {
   if (path !== ':memory:') {
@@ -101,12 +178,14 @@ export function openDb(path = ':memory:') {
     withUpgradeLock(path, () => {
       migrateIfPossible(path);
       setAsideIfIncompatible(path);
+      ensureSchema(path);
     });
   }
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA busy_timeout = 5000');
+  // Only reached for :memory: (a real file's schema was already ensured, under the lock, above).
   if (db.prepare('PRAGMA user_version').get().user_version === 0) {
     transaction(db, () => {
       db.exec(readFileSync(SCHEMA_FILE, 'utf8'));

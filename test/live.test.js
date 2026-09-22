@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../server/db.js';
 import { createBus, createExternalWatch } from '../server/events.js';
-import { startApp, openEvents, shiftDoc, doubleDoc } from './helpers.js';
+import { startApp, openEvents, shiftDoc } from './helpers.js';
 
 async function withApp(fn, opts) {
   const app = await startApp(opts);
@@ -43,9 +43,9 @@ test('SSE: hello, then a change event for every kind of write, with the shift at
     const place = (await app.call('POST', '/locations', { name: 'Main' })).body;
     let e = (await feed.next()).data;
     assert.deepEqual([e.entity, e.op, e.id, e.label, e.data.name], ['location', 'created', place.id, 'Main', 'Main']);
-    const ana = (await app.call('POST', '/employees', { name: 'Ana', role: 'Bartender' })).body;
+    const ana = (await app.call('POST', '/employees', { name: 'Ana', roles: ['Bartender'] })).body;
     e = (await feed.next()).data;
-    assert.deepEqual([e.entity, e.op, ana.name, e.data.role], ['employee', 'created', 'Ana', 'Bartender']);
+    assert.deepEqual([e.entity, e.op, ana.name, e.data.roles], ['employee', 'created', 'Ana', ['Bartender']]);
     await app.call('POST', '/employees', { name: 'ANA' }); // already there: adding again announces nothing
     await app.call('PATCH', `/employees/${ana.id}`, { name: 'Anna', notes: 'closes on Fridays' });
     e = (await feed.next()).data;
@@ -68,13 +68,13 @@ test('SSE: hello, then a change event for every kind of write, with the shift at
 
     const money = (await app.call('POST', `/shifts/${id}/money`, { value_cents: 6000 })).body;
     e = (await feed.next()).data;
-    assert.equal(e.note, 'money added: Tips $60.00 (night)');
+    assert.equal(e.note, 'money added: Tips $60.00');
     assert.equal(e.data.money_entries.length, 1);
-    await app.call('PATCH', `/money/${money.id}`, { value_cents: 7000, part: null });
-    assert.equal((await feed.next()).data.note, 'money changed: Tips $70.00 (night)'); // one period: "combined" attaches to it
+    await app.call('PATCH', `/money/${money.id}`, { value_cents: 7000 });
+    assert.equal((await feed.next()).data.note, 'money changed: Tips $70.00');
     await app.call('DELETE', `/money/${money.id}`);
     e = (await feed.next()).data;
-    assert.equal(e.note, 'money removed: Tips $70.00 (night)');
+    assert.equal(e.note, 'money removed: Tips $70.00');
     assert.equal(e.data.money_entries.length, 0);
 
     await app.call('DELETE', `/shifts/${id}`);
@@ -151,9 +151,9 @@ test('stats: raw counts and server clock', () =>
     const venue = (await app.call('POST', '/venues', { name: 'Test Bar' })).body;
     const job = (await app.call('POST', '/jobs', { venue_id: venue.id, title: 'Bartender' })).body;
     const a = app.newId();
-    await app.call('PUT', `/shifts/${a}`, doubleDoc(job.id, {
+    await app.call('PUT', `/shifts/${a}`, shiftDoc(job.id, {
       tags: ['busy', 'late'], breaks: [{ minutes: 30 }, { minutes: 15 }],
-      money_entries: [{ value_cents: 1, part: 'day' }, { value_cents: 2, part: null }],
+      money_entries: [{ value_cents: 1 }, { value_cents: 2 }],
     }));
     await app.call('POST', '/locations', { name: 'Main' });
     await app.call('POST', '/employees', { name: 'Ana' });
@@ -164,7 +164,7 @@ test('stats: raw counts and server clock', () =>
     assert.deepEqual(body.counts, {
       venues: 1, jobs: 1, wage_rates: 0, shifts: 1, shifts_deleted: 1, money_entries: 2, shift_tags: 2, shift_breaks: 2, locations: 1, employees: 2, parties: 0, income_categories: 1,
     });
-    assert.equal(body.schema_version, 7);
+    assert.equal(body.schema_version, 10);
     assert.ok(Math.abs(Date.parse(body.now) - Date.now()) < 5000);
   }));
 

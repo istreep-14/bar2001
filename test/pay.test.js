@@ -15,6 +15,7 @@ test('paid time is the length of the shift minus its breaks, ranges and lengths 
   assert.equal(breakMinutes([{ minutes: 10 }, { start_at: '2026-09-18T14:00', end_at: '2026-09-18T14:20' }]), 30);
   assert.equal(paidMinutes(shift({ start_at: '2026-09-18T17:00', end_at: '2026-09-19T01:30' })), 510, 'overnight');
   assert.equal(paidMinutes(shift({ breaks: [{ minutes: 9999 }] })), 0, 'never negative');
+  assert.equal(paidMinutes({ start_at: null, end_at: null, breaks: [] }), 0, 'a shift with no times yet has no paid time');
 });
 
 test('the rate is the latest one that has started by the work date', () => {
@@ -35,6 +36,9 @@ test('a shift earns paid hours times the rate, to the nearest cent; no rate mean
   assert.equal(deriveShift(shift({ breaks: [{ minutes: 1 }] }), [{ effective_from: '2026-01-01', rate_cents: 1000 }]).estimated_wage_cents, 5983, '359 min x $10 = $59.8333');
   assert.deepEqual(pick(deriveShift(shift({ work_date: '2025-06-01' }), rates), ['paid_minutes', 'wage_rate_cents', 'estimated_wage_cents']), { paid_minutes: 360, wage_rate_cents: null, estimated_wage_cents: null });
   assert.equal(deriveShift(shift({ work_date: '2026-09-19', start_at: '2026-09-18T17:00', end_at: '2026-09-19T01:00' }), rates).wage_rate_cents, 1125, 'the rate follows the work date, not the start date');
+  const untimed = deriveShift({ money_entries: [{ value_cents: 500 }] }, rates);
+  assert.deepEqual(pick(untimed, ['paid_minutes', 'wage_rate_cents', 'estimated_wage_cents']), { paid_minutes: 0, wage_rate_cents: null, estimated_wage_cents: null }, 'no date, no times: no wage, but tips still count');
+  assert.equal(untimed.tips_cents, 500);
 });
 
 test('tips, other income and the total are added up from the entries, and each has a per-hour figure', () => {
@@ -64,29 +68,29 @@ test('tips, other income and the total are added up from the entries, and each h
   assert.equal(zero.total_income_cents, 30550, 'the amounts are still there');
 });
 
-test('who counts as a bartender: a blank role, or Bartender in any case', () => {
-  for (const role of [null, undefined, '', 'Bartender', 'bartender', ' BARTENDER ']) assert.equal(isBartender(role), true, String(role));
-  for (const role of ['Barback', 'Server', 'Head bartender', 'Bouncer']) assert.equal(isBartender(role), false, role);
+test('who counts as a bartender: no roles, or Bartender among them in any case', () => {
+  for (const roles of [[], undefined, ['Bartender'], ['bartender'], [' BARTENDER '], ['Barback', 'Bartender']]) assert.equal(isBartender(roles), true, JSON.stringify(roles));
+  for (const roles of [['Barback'], ['Server'], ['Head bartender'], ['Bouncer']]) assert.equal(isBartender(roles), false, JSON.stringify(roles));
 });
 
 test('staffing: you plus the bartenders on the shift, their hours, and the tips made by everyone', () => {
-  const roles = { a: 'Bartender', b: null, c: 'Barback' };
-  const roleOf = (id) => roles[id] ?? null;
+  const roles = { a: ['Bartender'], b: [], c: ['Barback'] };
+  const rolesOf = (id) => roles[id] ?? [];
   const staff = [
     { employee_id: 'a', start_at: '2026-09-18T17:00', end_at: '2026-09-18T23:00', tips_cents: 15000 }, // 6h
     { employee_id: 'b', start_at: null, end_at: null, tips_cents: null },                               // no times, no tips: counted, no hours
     { employee_id: 'c', start_at: '2026-09-18T17:00', end_at: '2026-09-19T01:00', tips_cents: 5000 },   // barback: tips only
   ];
   // you: 11:00-17:00 less 30 = 5.5h (330 min), $120 tips
-  const d = deriveShift(shift({ breaks: [{ minutes: 30 }], money_entries: [{ value_cents: 12000 }], employees: staff }), [], roleOf);
+  const d = deriveShift(shift({ breaks: [{ minutes: 30 }], money_entries: [{ value_cents: 12000 }], employees: staff }), [], rolesOf);
   assert.deepEqual([d.bartender_count, d.bartender_minutes], [3, 330 + 360], 'you, a and b; b has no hours yet');
   assert.equal(d.staff_tips_cents, 12000 + 15000 + 5000, 'a barback\'s tips count towards the shift');
   assert.equal(d.staff_tips_per_bartender_hour_cents, Math.round((32000 * 60) / 690), '$27.83');
 
   const alone = deriveShift(shift({ money_entries: [{ value_cents: 12000 }] }), []);
   assert.deepEqual([alone.bartender_count, alone.bartender_minutes, alone.staff_tips_cents], [1, 360, 12000], 'with nobody listed it is just you');
-  assert.deepEqual(pick(deriveShift(shift({ employees: staff }), [], () => 'Barback'), ['bartender_count', 'bartender_minutes']), { bartender_count: 1, bartender_minutes: 360 }, 'nobody else is a bartender');
-  const noHours = deriveShift(shift({ breaks: [{ minutes: 360 }], employees: [{ employee_id: 'a', start_at: null, end_at: null, tips_cents: 900 }] }), [], roleOf);
+  assert.deepEqual(pick(deriveShift(shift({ employees: staff }), [], () => ['Barback']), ['bartender_count', 'bartender_minutes']), { bartender_count: 1, bartender_minutes: 360 }, 'nobody else is a bartender');
+  const noHours = deriveShift(shift({ breaks: [{ minutes: 360 }], employees: [{ employee_id: 'a', start_at: null, end_at: null, tips_cents: 900 }] }), [], rolesOf);
   assert.equal(noHours.staff_tips_per_bartender_hour_cents, null, 'no bartender hours, no per-hour figure');
 });
 
@@ -104,7 +108,7 @@ test('every shift the API returns carries its derived numbers, and they follow t
   return startApp().then(async (app) => {
     try {
       const id = randomUUID();
-      const put = await app.call('PUT', `/shifts/${id}`, shiftDoc(undefined, { start_at: '2026-09-18T11:00', end_at: '2026-09-18T21:30', shift_type: 'double', breaks: [{ minutes: 30 }] }));
+      const put = await app.call('PUT', `/shifts/${id}`, shiftDoc(undefined, { start_at: '2026-09-18T11:00', end_at: '2026-09-18T21:30', shift_type: 'day', breaks: [{ minutes: 30 }] }));
       assert.deepEqual(pick(put.body.derived, ['paid_minutes', 'wage_rate_cents', 'estimated_wage_cents']), { paid_minutes: 600, wage_rate_cents: null, estimated_wage_cents: null }, 'no wage set yet');
 
       const first = (await app.call('POST', '/wage-rates', { effective_from: '2026-01-01', rate_cents: 1000 })).body;

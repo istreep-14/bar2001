@@ -26,7 +26,6 @@ const FIELD_LABELS = {
   job_id: 'Job', location_id: 'Location', employees: 'Employees', parties: 'Party', work_date: 'Date', start_at: 'Start', end_at: 'End',
   shift_type: 'Shift type', breaks: 'Breaks', notes: 'Notes', tags: 'Tags', money_entries: 'Income',
 };
-const otherPart = (part) => (part === 'day' ? 'night' : 'day');
 const PILL_LIMIT = 24; // how many list entries are offered as tap targets; the rest are still reachable by typing
 
 // crypto.randomUUID only exists in secure contexts (https or localhost); over plain http on a
@@ -294,10 +293,12 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
   $('partyRibbon').append(ribbons.party.el);
 
   // One open form: { mode, id, orig, opener, startDelta, baseline, saving, armed,
-  //                  type: '' | 'day' | 'night' | 'double', entries: [{id, category_id, value, part, el}],
+  //                  type: '' | 'day' | 'night', typeAuto: bool, entries: [{id, category_id, value, el}],
   //                  staff: [{employee_id: string|null, name, start, end, tips, role, detail, uid}], crew: the staff member
   //                  shown in the Crew tab, loadedLocation: {id, name} | null }
-  // An entry's `part` ('', 'day' or 'night') only matters on a double; '' is "combined / not sure".
+  // There is no "double" shift: a day part and a night part worked back to back are just two separate shifts, so
+  // an income entry needs no field to say which half it belongs to. `type` is optional like everything else on the
+  // form; `typeAuto` says whether it is still following the start time (see "shift type" below) or was chosen by hand.
   // A staff member with a null employee_id is a name typed in that isn't on the employees table yet.
   // Their `start`/`end` are clock times ('HH:MM') and `tips` is dollars as typed; all three may be empty. `role` is only
   // used for a name that isn't on the table yet (an existing person's role is theirs, and is saved as it is changed).
@@ -306,37 +307,23 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
   // A new income row is Tips unless told otherwise (Tips is the built-in type; null only before the lists have loaded,
   // and the server treats a missing type as Tips too).
   const tipsId = () => [...data.incomeCategories.values()].find((c) => c.system)?.id ?? null;
-  const newEntry = (part = '', category_id = tipsId()) => ({ id: null, category_id, value: '', part, el: null });
+  const newEntry = (category_id = tipsId()) => ({ id: null, category_id, value: '', el: null });
   const isTips = (e) => !e.category_id || e.category_id === tipsId();
   const otherTypes = () => [...data.incomeCategories.values()].filter((c) => !c.system && !c.archived).sort((a, b) => a.name.localeCompare(b.name));
 
   // ---- opening -----------------------------------------------------------------------
-  function newestLive() {
-    let best = null;
-    for (const s of data.shifts.values()) if (!s.deleted_at && (!best || s.start_at > best.start_at)) best = s;
-    return best;
-  }
-
-  const localDate = (offset = 0) => {
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return d.toLocaleDateString('en-CA');
-  };
-  function defaultDate() {
-    return localDate(new Date().getHours() < 6 ? -1 : 0); // logging the night you just finished
-  }
-
+  // A new shift starts with nothing filled in and nothing guessed: no date, no times, no type, no
+  // location. `date` is only ever set when the caller says so directly (tapping a day on the
+  // calendar), never as a fallback default.
   function openNew(openerSel, { date } = {}) {
-    const last = newestLive();
-    ctx = { mode: 'new', id: newId(), orig: null, opener: openerSel, baseline: null, startDelta: 0, type: '', entries: [newEntry()], staff: [], crew: null, loadedLocation: null };
-    const lastPlace = last?.location_id && data.locations.get(last.location_id);
+    ctx = { mode: 'new', id: newId(), orig: null, opener: openerSel, baseline: null, startDelta: 0, type: '', typeAuto: true, entries: [newEntry()], staff: [], crew: null, loadedLocation: null };
     show({
       title: 'New shift',
-      date: date ?? defaultDate(),
-      start: last ? timeOf(last.start_at) : '',
-      end: last ? timeOf(last.end_at) : '',
-      location: lastPlace && !lastPlace.archived ? lastPlace.name : '',
-      hint: last ? 'Times and location are copied from your most recent shift.' : '',
+      date: date ?? '',
+      start: '',
+      end: '',
+      location: '',
+      hint: '',
       focus: 'date',
     });
   }
@@ -345,9 +332,11 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     const place = shift.location_id ? data.locations.get(shift.location_id) : null;
     ctx = {
       mode: 'edit', id: shift.id, orig: shift, opener: openerSel, baseline: shift.updated_at,
-      startDelta: daysBetween(shift.work_date, dateOf(shift.start_at)), // usually 0; keeps a work date that differs from the start date
-      type: shift.shift_type,
-      entries: shift.money_entries.map((m) => ({ id: m.id, category_id: m.category_id, value: (m.value_cents / 100).toFixed(2), part: m.part ?? '', el: null })),
+      // usually 0; keeps a work date that differs from the start date, when both are set
+      startDelta: shift.work_date && shift.start_at ? daysBetween(shift.work_date, dateOf(shift.start_at)) : 0,
+      type: shift.shift_type ?? '',
+      typeAuto: !shift.shift_type, // a type already on record is left alone; an unset one still follows the start time
+      entries: shift.money_entries.map((m) => ({ id: m.id, category_id: m.category_id, value: (m.value_cents / 100).toFixed(2), el: null })),
       staff: shift.employees.map((e) => ({
         employee_id: e.employee_id, name: data.employees.get(e.employee_id)?.name ?? 'Removed employee',
         start: e.start_at ? timeOf(e.start_at) : '', end: e.end_at ? timeOf(e.end_at) : '', tips: e.tips_cents == null ? '' : (e.tips_cents / 100).toFixed(2), role: '',
@@ -356,18 +345,19 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
       loadedLocation: place ? { id: place.id, name: place.name } : null,
     };
     show({
-      title: 'Edit shift', date: shift.work_date, start: timeOf(shift.start_at), end: timeOf(shift.end_at),
+      title: 'Edit shift', date: shift.work_date ?? '', start: shift.start_at ? timeOf(shift.start_at) : '', end: shift.end_at ? timeOf(shift.end_at) : '',
       location: place?.name ?? '', tags: shift.tags.join(', '), notes: blank(shift.notes), breaks: shift.breaks, parties: shift.parties,
       banner: shift.deleted_at ? 'This shift is deleted. Saving restores it.' : '', focus: 'date',
     });
   }
 
   function show(v) {
-      for (const r of typeRadios) r.checked = r.value === ctx.type;
     $('typeSeg').removeAttribute('aria-invalid');
     $('fDate').value = v.date;
     $('fStart').value = v.start;
     $('fEnd').value = v.end;
+    applyTypeFromStart(); // seeds an unset type from the start time; leaves an explicit one alone
+    for (const r of typeRadios) r.checked = r.value === ctx.type;
     breakList.load(v.breaks ?? []);
     partyList.load(v.parties ?? []);
     $('fParty').checked = partyList.count() > 0;
@@ -401,29 +391,32 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     const same = [...data.shifts.values()].filter((s) => !s.deleted_at && s.id !== ctx.id && s.work_date === date);
     note.classList.toggle('warn', same.length > 0);
     note.textContent = LONG_DATE.format(new Date(Date.UTC(y, m - 1, d)))
-      + (same.length ? ` · you already logged a ${same.map((s) => TYPE_NAME[s.shift_type].toLowerCase()).join(' and a ')} shift on this date.` : '');
+      + (same.length ? ` · you already logged a ${same.map((s) => (TYPE_NAME[s.shift_type] ?? 'shift').toLowerCase()).join(' and a ')} shift on this date.` : '');
   }
 
   // ---- shift type ---------------------------------------------------------------------
-  // Choosing Double makes the tips per half: what was entered so far stays with the type it was
-  // entered under, and a second entry is offered for the other half. Going back to Day or Night
-  // puts every entry on that type.
+  // A day part and a night part are separate shifts now, so the type is just Day or Night, and it is
+  // never required. The form seeds it from the start time (3:00 PM or later is Night, earlier is Day)
+  // so most shifts need no attention here at all; picking a radio by hand takes over from there, and
+  // the seeded guess won't come back and overwrite that choice, even if the start time changes again.
+  const NIGHT_CUTOFF_MINUTES = 15 * 60; // 3:00 PM
+  const typeFromStart = (minutes) => (minutes === null ? null : minutes >= NIGHT_CUTOFF_MINUTES ? 'night' : 'day');
+
   function setType(next) {
-    const prev = ctx.type;
     ctx.type = next;
+    ctx.typeAuto = false; // chosen by hand: the start time no longer overrides it
     $('typeSeg').removeAttribute('aria-invalid');
-    if (next === 'double' && prev !== 'double') {
-      const carried = prev === 'day' || prev === 'night' ? prev : '';
-      for (const e of ctx.entries) e.part = e.part || carried;
-      const tips = ctx.entries.filter(isTips);
-      if (tips.length === 1) { // one tips entry so far: offer a row for the other half
-        tips[0].part ||= 'day';
-        ctx.entries.push(newEntry(otherPart(tips[0].part)));
-      }
-    }
-    renderEntries();
   }
   for (const r of typeRadios) r.addEventListener('change', () => { if (r.checked) setType(r.value); });
+
+  // Reseed the type from the start time, but only while it is still following it.
+  function applyTypeFromStart() {
+    if (!ctx.typeAuto) return;
+    const guess = typeFromStart(toMinutes($('fStart').value));
+    if (guess === null || guess === ctx.type) return;
+    ctx.type = guess;
+    for (const r of typeRadios) r.checked = r.value === ctx.type;
+  }
 
   // ---- shift times --------------------------------------------------------------------
   function syncNextDay() {
@@ -431,22 +424,21 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     const e = toMinutes($('fEnd').value);
     $('nextDay').hidden = !(s !== null && e !== null && e <= s);
   }
+  $('fStart').addEventListener('input', () => { if (ctx) applyTypeFromStart(); });
   for (const id of ['fStart', 'fEnd']) $(id).addEventListener('input', () => { if (ctx) syncNextDay(); });
 
   // ---- tips and misc income rows --------------------------------------------------------
   // Two groups, one list: tips rows (no type to choose) and other-income rows (a type from your list).
-  // Each row: [type,] (on a double) which half, the amount, a remove.
+  // Each row: [type,] the amount, a remove.
   const typeChoices = (current) => [...data.incomeCategories.values()]
     .filter((c) => !c.system && (!c.archived || c.id === current)) // a removed type still shows on the entries that use it
     .sort((a, b) => a.name.localeCompare(b.name));
 
   function renderEntries() {
-    const double = ctx.type === 'double';
     const tips = ctx.entries.filter(isTips);
     const other = ctx.entries.filter((e) => !isTips(e));
     $('tipRows').replaceChildren(...tips.map((e, i) => entryEl(e, i, 'Tips')));
     $('otherRows').replaceChildren(...other.map((e, i) => entryEl(e, i, 'Misc')));
-    $('combinedHint').hidden = !double;
     const haveTypes = otherTypes().length > 0;
     $('addOther').hidden = !haveTypes;
     $('otherHint').hidden = haveTypes || other.length > 0;
@@ -454,44 +446,31 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
 
   function entryEl(e, i, group) {
     const n = i + 1;
-    const double = ctx.type === 'double';
     const tips = group === 'Tips';
-    const value = h('input', { type: 'text', inputmode: 'decimal', placeholder: '$0.00', autocomplete: 'off', 'aria-label': `${group} entry ${n} amount in dollars` });
+    const value = h('input', { type: 'text', id: `${group}Amount${n}`, name: `${group}Amount${n}`, inputmode: 'decimal', placeholder: '$0.00', autocomplete: 'off', 'aria-label': `${group} entry ${n} amount in dollars` });
     value.value = e.value;
     value.addEventListener('input', () => { e.value = value.value; value.removeAttribute('aria-invalid'); });
     let kind = null;
     if (!tips) {
-      kind = h('select', { 'aria-label': `${group} entry ${n}: type` }, typeChoices(e.category_id).map((c) => h('option', { value: c.id }, c.name)));
+      kind = h('select', { id: `${group}Type${n}`, name: `${group}Type${n}`, 'aria-label': `${group} entry ${n}: type` }, typeChoices(e.category_id).map((c) => h('option', { value: c.id }, c.name)));
       kind.value = e.category_id ?? '';
       kind.addEventListener('change', () => { e.category_id = kind.value || null; });
-    }
-    let half = null;
-    if (double) {
-      half = h('select', { 'aria-label': `${group} entry ${n}: which part of the shift` },
-        h('option', { value: '' }, 'Combined'),
-        h('option', { value: 'day' }, 'Day'),
-        h('option', { value: 'night' }, 'Night'));
-      half.value = e.part;
-      half.addEventListener('change', () => { e.part = half.value; });
     }
     const remove = h('button', { type: 'button', class: 'linkbtn x', 'aria-label': `Remove ${group.toLowerCase()} entry ${n}` }, '✕');
     remove.addEventListener('click', () => { ctx.entries.splice(ctx.entries.indexOf(e), 1); renderEntries(); });
     e.el = { value };
-    return h('div', { class: `mrow ${tips ? 't' : 'o'}${double ? 2 : 1}` }, kind, half, value, remove);
+    return h('div', { class: `mrow ${tips ? 't' : 'o'}1` }, kind, value, remove);
   }
 
   $('addTips').addEventListener('click', () => {
-    // on a double, offer the first half that has no tips yet
-    const tips = ctx.entries.filter(isTips);
-    const free = ctx.type === 'double' ? ['day', 'night'].find((p) => !tips.some((e) => e.part === p)) : '';
-    const entry = newEntry(free ?? '');
+    const entry = newEntry();
     ctx.entries.push(entry);
     renderEntries();
     entry.el.value.focus();
   });
 
   $('addOther').addEventListener('click', () => {
-    const entry = newEntry('', otherTypes()[0]?.id ?? null);
+    const entry = newEntry(otherTypes()[0]?.id ?? null);
     ctx.entries.push(entry);
     renderEntries();
     entry.el.value.focus();
@@ -507,9 +486,9 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     return { employee_id: m.employee_id ?? `new:${m.name}`, ...times, tips_cents: cents };
   };
   // A person who isn't on the table yet has no id, only the role typed for them in the Crew tab.
-  const roleOf = (id) => {
+  const rolesOf = (id) => {
     const member = ctx.staff.find((m) => (m.employee_id ?? `new:${m.name}`) === id);
-    return member && !member.employee_id ? member.role || null : data.employees.get(id)?.role ?? null;
+    return member && !member.employee_id ? (member.role ? [member.role] : []) : data.employees.get(id)?.roles ?? [];
   };
 
   // Everything on the form that is worked out from what has been entered. The drawn parts (tiles, ribbons, charts) are only
@@ -545,7 +524,7 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     const d = deriveShift({
       work_date: date, start_at: S, end_at: E, breaks: r.problems.length ? [] : r.value, money_entries,
       employees: ctx.staff.map((m) => staffDoc(m, S, E)), parties: pr.value,
-    }, [...data.wageRates.values()], roleOf);
+    }, [...data.wageRates.values()], rolesOf);
 
     if (d.estimated_wage_cents === null) {
       box.replaceChildren(h('span', { class: 'muted' }, 'No hourly wage in effect on this date. Set your rate under Lists after saving.'));
@@ -608,12 +587,6 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     const minutes = v?.d.paid_minutes ?? 0;
     const rate = perHour(total, minutes);
     const items = [{ label: 'Total', value: total ? usd(total) : '—' }, { label: 'Per hour', value: perHourText(rate), ...versus(rate, tipsPerHour(past().all), 'your') }];
-    if (ctx.type === 'double') {
-      for (const part of ['day', 'night']) {
-        const cents = ctx.entries.filter((e) => isTips(e) && e.part === part).reduce((a, e) => a + (parseDollars(e.value) ?? 0), 0);
-        if (cents) items.push({ label: TYPE_NAME[part], value: usd0(cents) });
-      }
-    }
     $('tipFacts').replaceChildren(facts(total ? items : []));
   }
 
@@ -740,7 +713,9 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     const worked = s !== null && e !== null ? hoursText((e - s + 1440) % 1440 || 1440) : 'no times';
     return [worked, cents === null ? '' : usd0(cents)].filter(Boolean).join(' · ');
   };
-  const roleText = (m) => (m.employee_id ? data.employees.get(m.employee_id)?.role : m.role) ?? '';
+  // A quick single-role edit from the Crew tab; someone with several roles already (set on the Employees page) shows
+  // them joined here, and typing a new value replaces the whole set with that one role.
+  const roleText = (m) => (m.employee_id ? data.employees.get(m.employee_id)?.roles ?? [] : m.role ? [m.role] : []).join(', ');
   let crewSerial = 0;
 
   // Redraw the strip of tabs (one per person on the shift) with the picked person's detail open.
@@ -749,7 +724,7 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     for (const m of ctx.staff) { m.uid ??= ++crewSerial; m.detail ??= buildDetail(m); }
     for (const m of ctx.staff) m.paintRole();
     crewTabs.setItems(ctx.staff.map((m) => ({ id: m.uid, label: m.name, sub: crewSub(m), panel: m.detail })), { select: ctx.crew?.uid });
-    const roles = new Set([...SUGGESTED_ROLES, ...[...data.employees.values()].map((e) => e.role).filter(Boolean)]);
+    const roles = new Set([...SUGGESTED_ROLES, ...[...data.employees.values()].flatMap((e) => e.roles ?? [])]);
     $('crewRoleList').replaceChildren(...[...roles].sort().map((r) => h('option', { value: r })));
   }
 
@@ -762,10 +737,10 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
   // person's, not the shift's, so for someone already on the table it is saved as soon as it is changed (the same as in
   // the Employees tab); for a new name it is kept and sent when the person is created on save.
   function buildDetail(m) {
-    const start = h('input', { type: 'time', 'aria-label': `${m.name} start` });
-    const end = h('input', { type: 'time', 'aria-label': `${m.name} end` });
-    const tips = h('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '$0.00', 'aria-label': `${m.name}: tips they made, in dollars` });
-    const role = h('input', { type: 'text', list: 'crewRoleList', maxlength: '50', autocomplete: 'off', placeholder: 'Bartender', 'aria-label': `${m.name}: role` });
+    const start = h('input', { type: 'time', id: `crewStart${m.uid}`, name: `crewStart${m.uid}`, 'aria-label': `${m.name} start` });
+    const end = h('input', { type: 'time', id: `crewEnd${m.uid}`, name: `crewEnd${m.uid}`, 'aria-label': `${m.name} end` });
+    const tips = h('input', { type: 'text', id: `crewTips${m.uid}`, name: `crewTips${m.uid}`, inputmode: 'decimal', autocomplete: 'off', placeholder: '$0.00', 'aria-label': `${m.name}: tips they made, in dollars` });
+    const role = h('input', { type: 'text', id: `crewRole${m.uid}`, name: `crewRole${m.uid}`, list: 'crewRoleList', maxlength: '50', autocomplete: 'off', placeholder: 'Bartender', 'aria-label': `${m.name}: role` });
     const hint = h('p', { class: 'muted' });
     const msg = h('div', { class: 'lmsg', role: 'status' });
     start.value = m.start;
@@ -777,16 +752,17 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     m.el = { start, end, tips, role };
     m.paintRole = () => { // also runs when the people list changes elsewhere; a role being typed is left alone
       if (document.activeElement !== role) role.value = roleText(m);
-      hint.textContent = isBartender(roleText(m)) ? 'Counts as a bartender in the shift totals.' : 'Not counted as a bartender; their tips still count towards the shift.';
+      hint.textContent = isBartender(rolesOf(m.employee_id ?? `new:${m.name}`)) ? 'Counts as a bartender in the shift totals.' : 'Not counted as a bartender; their tips still count towards the shift.';
     };
     role.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); role.blur(); } });
     role.addEventListener('change', async () => {
       const value = role.value.trim();
       const person = m.employee_id ? data.employees.get(m.employee_id) : null;
       if (!person) { m.role = value; m.paintRole(); return refreshDerived(); }
-      if (value === (person.role ?? '')) { role.value = person.role ?? ''; return undefined; }
+      const current = (person.roles ?? []).join(', ');
+      if (value === current) { role.value = current; return undefined; }
       try {
-        const row = await request('PATCH', `/employees/${person.id}`, { role: value === '' ? null : value });
+        const row = await request('PATCH', `/employees/${person.id}`, { roles: value === '' ? [] : [value] });
         data.employees.set(row.id, row);
         msg.textContent = `Saved ${row.name}’s role.`;
         msg.classList.remove('bad');
@@ -795,7 +771,7 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
         refreshDerived();
       } catch (err) {
         if (isAuthError(err)) return onAuth();
-        role.value = person.role ?? '';
+        role.value = current;
         msg.textContent = err.problems?.[0]?.replace(/^\w+: /, '') ?? 'Could not save that.';
         msg.classList.add('bad');
       }
@@ -844,7 +820,7 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
   $('fParty').addEventListener('change', () => { partyList.setPresent($('fParty').checked); refreshDerived(); });
 
   // ---- the live line under each tab ---------------------------------------------------------
-  const TYPE_LABEL = { day: 'Day', night: 'Night', double: 'Double' };
+  const TYPE_LABEL = { day: 'Day', night: 'Night' };
   const DAY = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   const dayLabel = (date) => { const [y, m, d] = date.split('-').map(Number); return DAY.format(new Date(Date.UTC(y, m - 1, d))); };
   const clip = (text, n) => (text.length > n ? text.slice(0, n - 1) + '…' : text);
@@ -894,25 +870,34 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
 
     const date = $('fDate').value;
     const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date);
-    if (!dateOk) bad($('fDate'), 'Enter the shift date.');
     const startOk = toMinutes($('fStart').value) !== null;
     const endOk = toMinutes($('fEnd').value) !== null;
-    if (!startOk) bad($('fStart'), 'Enter a start time.');
-    if (!endOk) bad($('fEnd'), 'Enter an end time.');
+    if (startOk !== endOk) bad(startOk ? $('fEnd') : $('fStart'), 'Enter both a start and an end time, or neither.');
 
-    // The shift's own span, and the breaks inside it (they need the span, so only when the times are valid).
+    // The shift's own span, when both times are given. `anchor` is only a day to place break, party and
+    // crew clock times on: the midnight-to-midnight of the shift's date when there's no span yet, so those
+    // can still be entered before the shift's own times are pinned down.
     let S = null;
     let E = null;
+    let anchor = null;
     let breaks = [];
     let parties = [];
     const employees = [];
-    if (dateOk && startOk && endOk) {
-      S = joinLocal(addDays(date, ctx.startDelta), toMinutes($('fStart').value));
-      E = resolveEnd(S, $('fEnd').value); // an end at or before the start means the next day
-      const r = breakList.read({ S, E });
+    if (dateOk) {
+      const base = addDays(date, ctx.startDelta);
+      if (startOk && endOk) {
+        S = joinLocal(base, toMinutes($('fStart').value));
+        E = resolveEnd(S, $('fEnd').value); // an end at or before the start means the next day
+        anchor = { S, E };
+      } else {
+        anchor = { S: joinLocal(base, 0), E: joinLocal(base, 1440) };
+      }
+    }
+    if (anchor) {
+      const r = breakList.read(anchor);
       for (const p of r.problems) bad(p.el, p.msg);
       breaks = r.value;
-      const pr = partyList.read({ S, E });
+      const pr = partyList.read(anchor);
       for (const p of pr.problems) bad(p.el, p.msg);
       parties = pr.value;
       // each employee's times sit on the dates nearest the shift (they may arrive earlier or leave later than you)
@@ -921,7 +906,7 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
         let end_at = null;
         if (m.start || m.end) {
           if (!m.start || !m.end) bad(m.start ? m.el.end : m.el.start, `${m.name}: enter both a start and an end time, or neither.`);
-          else { start_at = resolveNearSpan(S, E, m.start); end_at = resolveEnd(start_at, m.end); }
+          else { start_at = resolveNearSpan(anchor.S, anchor.E, m.start); end_at = resolveEnd(start_at, m.end); }
         }
         let tips_cents = null;
         if (m.tips.trim() !== '') {
@@ -931,8 +916,6 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
         employees.push({ employee_id: m.employee_id ?? null, start_at, end_at, tips_cents });
       }
     }
-
-    if (!ctx.type) bad($('typeSeg'), 'Choose the shift type: Day, Night or Double.');
 
     const entries = [];
     ctx.entries.forEach((e, i) => {
@@ -947,10 +930,10 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
 
     const doc = {
       job_id: ctx.orig?.job_id ?? null, // the form doesn't ask for a job, but editing must not drop one
-      work_date: date,
+      work_date: dateOk ? date : null,
       start_at: S,
       end_at: E,
-      shift_type: ctx.type,
+      shift_type: ctx.type || null,
       breaks,
       parties,
       employees,
@@ -960,7 +943,6 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
         ...(e.id && { id: e.id }),
         ...(e.category_id && { category_id: e.category_id }),
         value_cents: cents,
-        part: ctx.type === 'double' ? e.part || null : ctx.type, // null on a double = combined / not sure
       })),
     };
     return { doc, location, problems };
@@ -984,7 +966,7 @@ export function createShiftForm({ h, request, isAuthError, data, stepper, derive
     // new employee names are added to the employees table first, so each staff row has an id
     for (const member of ctx.staff) {
       if (member.employee_id) continue;
-      const row = await request('POST', '/employees', { name: member.name, ...(member.role && { role: member.role }) });
+      const row = await request('POST', '/employees', { name: member.name, ...(member.role && { roles: [member.role] }) });
       data.employees.set(row.id, row);
       member.employee_id = row.id;
     }

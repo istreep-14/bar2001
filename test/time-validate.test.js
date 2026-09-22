@@ -6,7 +6,7 @@ import {
 import { validateShift, validateMoneyEntry, validateVenue, validateListItem, validateEmployee } from '../server/validate.js';
 
 const JOB = '3f2b1c9e-8d4a-4b6e-9a7c-1d2e3f405162';
-const doc = (over = {}) => ({ job_id: JOB, start_at: '2026-09-18T11:00', end_at: '2026-09-18T21:30', shift_type: 'double', ...over });
+const doc = (over = {}) => ({ job_id: JOB, start_at: '2026-09-18T11:00', end_at: '2026-09-18T21:30', shift_type: 'day', ...over });
 const problems = (d) => validateShift(d).problems.join(' | ');
 
 // ---- wall-clock helpers --------------------------------------------------------------
@@ -44,13 +44,35 @@ test('resolveNearSpan puts a clock time on the date nearest the shift', () => {
 });
 
 // ---- shifts ------------------------------------------------------------------------------
-test('a shift needs a type: day, night or double', () => {
-  for (const type of ['day', 'night', 'double']) assert.deepEqual(validateShift(doc({ shift_type: type })).problems, [], type);
+// There is no "double" shift any more: a day part and a night part worked back to back are just two
+// separate shifts. Every part of a shift is optional, including the date, times and type.
+test('a shift type is day or night, and is optional (no "double")', () => {
+  for (const type of ['day', 'night']) assert.deepEqual(validateShift(doc({ shift_type: type })).problems, [], type);
   const omitted = doc();
   delete omitted.shift_type;
-  assert.match(problems(omitted), /shift_type: required/);
-  assert.match(problems(doc({ shift_type: 'mid' })), /shift_type: must be one of: day, night, double/);
-  assert.match(problems(doc({ shift_type: null })), /shift_type: must be one of/);
+  assert.deepEqual(validateShift(omitted).problems, [], 'a type is not required');
+  assert.deepEqual(validateShift(doc({ shift_type: null })).value.shift_type, null);
+  assert.match(problems(doc({ shift_type: 'double' })), /shift_type: must be one of: day, night/, '"double" no longer exists');
+  assert.match(problems(doc({ shift_type: 'mid' })), /shift_type: must be one of: day, night/);
+});
+
+test('nothing about a shift is required: a bare document is valid, with everything left out', () => {
+  assert.deepEqual(validateShift({}).problems, []);
+  const r = validateShift({});
+  assert.deepEqual([r.value.work_date, r.value.start_at, r.value.end_at, r.value.shift_type], [undefined, undefined, undefined, undefined]);
+  assert.deepEqual(validateShift({ work_date: '2026-09-18' }).problems, [], 'a date alone, no times');
+  assert.deepEqual(validateShift({ shift_type: 'night' }).problems, [], 'a type alone, no times');
+  assert.deepEqual(validateShift({ money_entries: [{ value_cents: 100 }] }).problems, [], 'income alone, no times');
+});
+
+test('start and end are both given or neither; a lone one is rejected', () => {
+  const noStart = doc();
+  delete noStart.start_at;
+  assert.match(problems(noStart), /give both start_at and end_at, or neither/);
+  const noEnd = doc();
+  delete noEnd.end_at;
+  assert.match(problems(noEnd), /give both start_at and end_at, or neither/);
+  assert.deepEqual(validateShift({ end_at: null, start_at: null }).problems, []);
 });
 
 test('tip periods and timezones no longer exist', () => {
@@ -65,6 +87,8 @@ test('an overnight shift is just an end on the next date; work_date defaults to 
   assert.deepEqual(r.problems, []);
   assert.equal(r.value.work_date, '2026-09-18');
   assert.equal(validateShift(doc({ work_date: '2026-09-17' })).value.work_date, '2026-09-17');
+  assert.equal(validateShift({ work_date: '2026-09-17' }).value.work_date, '2026-09-17', 'a date with no times is kept as given');
+  assert.equal(validateShift({}).value.work_date, undefined, 'with neither a date nor a start, there is no date at all');
 });
 
 test('end must be after start, and a shift is at most 24 hours', () => {
@@ -115,6 +139,8 @@ test('breaks must sit inside the shift, not overlap, and fit within it together'
   // an overnight break lands on the next date
   const late = doc({ start_at: '2026-09-18T17:00', end_at: '2026-09-19T01:00', shift_type: 'night', breaks: [{ start_at: '2026-09-19T00:15', end_at: '2026-09-19T00:45' }] });
   assert.deepEqual(validateShift(late).problems, []);
+  // with no shift start/end at all, there is no span for a break to fall inside or fit within
+  assert.deepEqual(validateShift({ breaks: [R('10:30', '11:15'), { minutes: 700 }] }).problems, []);
 });
 
 // ---- location, employees, parties, job ---------------------------------------------------
@@ -174,14 +200,20 @@ test('a party is a yes/no that can carry details, all optional', () => {
   assert.match(problems(doc({ parties: Array.from({ length: 11 }, () => ({})) })), /at most 10 parties/);
 });
 
-test('an employee record: a name, a role and notes', () => {
-  assert.deepEqual(validateEmployee({ name: '  Ana  ', role: 'Bartender', notes: null }).value, { name: 'Ana', role: 'Bartender', notes: null });
+test('an employee record: a name, roles, and the fields added since', () => {
+  assert.deepEqual(
+    validateEmployee({ name: '  Ana  ', first: 'Ana', last: 'Lee', id_number: '042', roles: ['Bartender', 'Manager'], manager: true, is_me: false, notes: null }).value,
+    { name: 'Ana', first: 'Ana', last: 'Lee', id_number: '042', roles: ['Bartender', 'Manager'], manager: true, is_me: false, notes: null },
+  );
   assert.deepEqual(validateEmployee({ name: 'Ana' }).value, { name: 'Ana' });
   assert.match(validateEmployee({}).problems.join(), /name: required/);
-  assert.deepEqual(validateEmployee({ name: 'Ana', role: '  ' }).value, { name: 'Ana', role: null }, 'a blank role is no role');
-  assert.match(validateEmployee({ name: 'Ana', role: 'x'.repeat(51) }).problems.join(), /role: must be at most 50/);
+  assert.deepEqual(validateEmployee({ name: 'Ana', roles: ['Bartender', ' Bartender ', 'bartender'] }).value, { name: 'Ana', roles: ['Bartender', 'bartender'] }, 'roles are de-duplicated by exact text, like tags');
+  assert.match(validateEmployee({ name: 'Ana', roles: ['x'.repeat(51)] }).problems.join(), /each role must be at most 50/);
+  assert.match(validateEmployee({ name: 'Ana', roles: Array.from({ length: 11 }, (_, i) => `r${i}`) }).problems.join(), /at most 10 roles/);
+  assert.match(validateEmployee({ name: 'Ana', roles: 'Bartender' }).problems.join(), /roles: must be an array/);
+  assert.match(validateEmployee({ name: 'Ana', manager: 'yes' }).problems.join(), /manager: must be true or false/);
   assert.match(validateEmployee({ name: 'Ana', phone: '1' }).problems.join(), /phone: unknown field/);
-  assert.deepEqual(validateEmployee({ role: null }, { partial: true }).value, { role: null }, 'a role can be cleared');
+  assert.deepEqual(validateEmployee({ roles: [] }, { partial: true }).value, { roles: [] }, 'roles can be cleared');
 });
 
 test('list entries are just a name', () => {
@@ -194,7 +226,9 @@ test('list entries are just a name', () => {
 });
 
 // ---- tips ------------------------------------------------------------------------------
-test('income: the type is optional (the store makes it tips), value is whole cents, parts are day or night', () => {
+// An income entry no longer says which "half" of a shift it belongs to: since a day part and a night
+// part are separate shifts now, there is nothing left to disambiguate.
+test('income: the type is optional (the store makes it tips), value is whole cents', () => {
   assert.deepEqual(validateMoneyEntry({ value_cents: 21000 }).value, { value_cents: 21000 });
   const type = '5dbe47d7-cbe5-4484-85a4-512e48959f67';
   assert.deepEqual(validateMoneyEntry({ value_cents: 21000, category_id: type }).value, { value_cents: 21000, category_id: type });
@@ -203,22 +237,7 @@ test('income: the type is optional (the store makes it tips), value is whole cen
   assert.match(validateMoneyEntry({ category_id: 'wage', value_cents: 100 }).problems.join(), /category_id: must be a UUID/);
   assert.match(validateMoneyEntry({ category: 'tips', value_cents: 100 }).problems.join(), /category: unknown field/);
   assert.match(validateMoneyEntry({ value_cents: 100, tip_period: 'day' }).problems.join(), /tip_period: unknown field/);
-  assert.match(validateMoneyEntry({ value_cents: 100, part: 'double' }).problems.join(), /part: must be one of: day, night/);
-  assert.deepEqual(validateMoneyEntry({ value_cents: 100, part: null }).problems, []);
-});
-
-test('on a double, tips are for the day, the night, or combined', () => {
-  const r = validateShift(doc({ money_entries: [{ value_cents: 21000, part: 'day' }, { value_cents: 34550, part: 'night' }, { value_cents: 1000, part: null }, { value_cents: 5 }] }));
-  assert.deepEqual(r.problems, []);
-  assert.deepEqual(r.value.money_entries.map((m) => m.part), ['day', 'night', null, null]);
-});
-
-test('on a day or night shift, tips belong to that type automatically, and cannot be for the other', () => {
-  const night = validateShift(doc({ shift_type: 'night', money_entries: [{ value_cents: 100 }, { value_cents: 200, part: null }, { value_cents: 300, part: 'night' }] }));
-  assert.deepEqual(night.problems, []);
-  assert.deepEqual(night.value.money_entries.map((m) => m.part), ['night', 'night', 'night']);
-  assert.match(problems(doc({ shift_type: 'night', money_entries: [{ value_cents: 1, part: 'day' }] })), /this is a night shift, so its income can't be for day/);
-  assert.match(problems(doc({ shift_type: 'day', money_entries: [{ value_cents: 1, part: 'night' }] })), /this is a day shift/);
+  assert.match(validateMoneyEntry({ value_cents: 100, part: 'day' }).problems.join(), /part: unknown field/, '"part" no longer exists');
 });
 
 test('entry ids must be unique UUIDs; tags are de-duplicated; unknown fields rejected', () => {

@@ -117,8 +117,8 @@ test('a shift can mix income types: an entry with no type is tips, each type rea
       money_entries: [{ value_cents: 10000 }, { value_cents: 2500, category_id: cash.id }, { value_cents: 4000, category_id: venmo.id }, { value_cents: 500, category_id: cash.id }],
     }));
     assert.equal(put.status, 201);
-    assert.deepEqual(put.body.money_entries.map((m) => [m.category_id, m.value_cents, m.part]),
-      [[TIPS, 10000, 'night'], [cash.id, 2500, 'night'], [venmo.id, 4000, 'night'], [cash.id, 500, 'night']], 'they keep their order, and follow the shift type');
+    assert.deepEqual(put.body.money_entries.map((m) => [m.category_id, m.value_cents]),
+      [[TIPS, 10000], [cash.id, 2500], [venmo.id, 4000], [cash.id, 500]], 'they keep their order');
     const added = await app.call('POST', `/shifts/${id}/money`, { value_cents: 900, category_id: venmo.id });
     assert.equal(added.body.category_id, venmo.id);
     assert.equal((await app.call('PATCH', `/money/${added.body.id}`, { category_id: cash.id })).body.category_id, cash.id, 'an entry can change type');
@@ -132,44 +132,52 @@ test('a shift can mix income types: an entry with no type is tips, each type rea
   }));
 
 // ---- employees -------------------------------------------------------------------------
-test('/employees: adding is find-or-create by name, and carries a role and notes for a new person only', () =>
+test('/employees: adding is find-or-create by name, and carries roles/first/last/id_number/manager/is_me/notes for a new person only', () =>
   withApp(async (app) => {
-    const first = await app.call('POST', '/employees', { name: '  Ana ', role: 'Bartender', notes: 'closes Fridays' });
+    const first = await app.call('POST', '/employees', {
+      name: '  Ana ', first: 'Ana', last: 'Lee', id_number: '042', roles: ['Bartender'], manager: true, is_me: true, notes: 'closes Fridays',
+    });
     assert.equal(first.status, 201);
-    assert.deepEqual([first.body.name, first.body.role, first.body.notes, first.body.archived], ['Ana', 'Bartender', 'closes Fridays', false]);
-    const again = await app.call('POST', '/employees', { name: 'ana', role: 'Barback' });
-    assert.deepEqual([again.status, again.body.id, again.body.role], [200, first.body.id, 'Bartender'], 'the person already there is returned as they are');
+    assert.deepEqual(
+      [first.body.name, first.body.roles, first.body.manager, first.body.is_me, first.body.notes, first.body.archived],
+      ['Ana', ['Bartender'], true, true, 'closes Fridays', false],
+    );
+    const again = await app.call('POST', '/employees', { name: 'ana', roles: ['Barback'] });
+    assert.deepEqual([again.status, again.body.id, again.body.roles], [200, first.body.id, ['Bartender']], 'the person already there is returned as they are');
     const bare = (await app.call('POST', '/employees', { name: 'Ben' })).body;
-    assert.deepEqual([bare.role, bare.notes], [null, null], 'a role is optional');
+    assert.deepEqual([bare.roles, bare.manager, bare.is_me, bare.notes], [[], false, false, null], 'roles and the flags are optional');
     assert.equal((await app.call('POST', '/employees', { name: '' })).status, 400);
     assert.equal((await app.call('POST', '/employees', { name: 'Cleo', phone: '555' })).status, 400, 'no such field yet');
     assert.equal((await app.call('POST', '/employees', { name: 'Cleo', archived: true })).body.archived, false, 'a new person is never created archived');
+    assert.equal((await app.call('POST', '/employees', { name: 'Deb', is_me: true })).status, 409, 'only one employee can be flagged as you');
     assert.deepEqual((await app.call('GET', '/employees')).body.employees.map((e) => e.name), ['Ana', 'Ben', 'Cleo'], 'sorted by name');
     assert.equal((await app.call('GET', `/employees/${first.body.id}`)).body.notes, 'closes Fridays');
     assert.equal((await app.call('GET', `/employees/${randomUUID()}`)).status, 404);
   }));
 
-test('/employees: name, role and notes can each be changed or cleared, and a name that is taken is a plain conflict', () =>
+test('/employees: name, roles and notes can each be changed or cleared, and a name that is taken is a plain conflict', () =>
   withApp(async (app) => {
-    const ana = (await app.call('POST', '/employees', { name: 'Ana', role: 'Bartender', notes: 'x' })).body;
+    const ana = (await app.call('POST', '/employees', { name: 'Ana', roles: ['Bartender'], notes: 'x' })).body;
     const ben = (await app.call('POST', '/employees', { name: 'Ben' })).body;
-    const patched = await app.call('PATCH', `/employees/${ana.id}`, { role: 'Barback' });
-    assert.deepEqual([patched.body.name, patched.body.role, patched.body.notes], ['Ana', 'Barback', 'x'], 'only what was sent changes');
-    assert.deepEqual([(await app.call('PATCH', `/employees/${ana.id}`, { role: null, notes: '' })).body].map((e) => [e.role, e.notes])[0], [null, null], 'clearing a field');
+    const patched = await app.call('PATCH', `/employees/${ana.id}`, { roles: ['Barback', 'Bartender'] });
+    assert.deepEqual([patched.body.name, patched.body.roles, patched.body.notes], ['Ana', ['Barback', 'Bartender'], 'x'], 'only what was sent changes');
+    assert.deepEqual([(await app.call('PATCH', `/employees/${ana.id}`, { roles: [], notes: '' })).body].map((e) => [e.roles, e.notes])[0], [[], null], 'clearing a field');
     assert.equal((await app.call('PATCH', `/employees/${ana.id}`, { name: 'anna' })).body.name, 'anna');
     const clash = await app.call('PATCH', `/employees/${ben.id}`, { name: 'ANNA' });
     assert.equal(clash.status, 409);
     assert.match(clash.body.problems[0], /"ANNA" is already on your employees list/);
     assert.equal((await app.call('PATCH', `/employees/${ben.id}`, { name: 'Ben' })).status, 200, 'keeping your own name is fine');
-    assert.equal((await app.call('PATCH', `/employees/${randomUUID()}`, { role: 'x' })).status, 404);
+    assert.equal((await app.call('PATCH', `/employees/${randomUUID()}`, { roles: ['x'] })).status, 404);
     assert.equal((await app.call('PATCH', `/employees/${ben.id}`, { name: '' })).status, 400);
     assert.equal((await app.call('PATCH', `/employees/${ben.id}`, { shoe_size: 9 })).status, 400);
+    assert.equal((await app.call('PATCH', `/employees/${ben.id}`, { is_me: true })).status, 200);
+    assert.equal((await app.call('PATCH', `/employees/${ana.id}`, { is_me: true })).status, 409, 'Ben already is you');
   }));
 
 test('/employees: removing deletes someone who never worked a shift, but archives someone who did', () =>
   withApp(async (app) => {
     const unused = (await app.call('POST', '/employees', { name: 'Unused' })).body;
-    const used = (await app.call('POST', '/employees', { name: 'Used', role: 'Server' })).body;
+    const used = (await app.call('POST', '/employees', { name: 'Used', roles: ['Server'] })).body;
     const shiftId = randomUUID();
     await app.call('PUT', `/shifts/${shiftId}`, shiftDoc(undefined, { employees: [{ employee_id: used.id, tips_cents: 500 }] }));
     assert.deepEqual((await app.call('DELETE', `/employees/${unused.id}`)).body, { archived: false });
@@ -177,10 +185,10 @@ test('/employees: removing deletes someone who never worked a shift, but archive
     assert.deepEqual((await app.call('DELETE', `/employees/${used.id}`)).body, { archived: true });
     assert.equal((await app.call('GET', '/employees')).body.employees.length, 0, 'archived people are not offered');
     const all = (await app.call('GET', '/employees?include_archived=1')).body.employees;
-    assert.deepEqual(all.map((e) => [e.name, e.role, e.archived]), [['Used', 'Server', true]], 'but they still resolve, role and all');
+    assert.deepEqual(all.map((e) => [e.name, e.roles, e.archived]), [['Used', ['Server'], true]], 'but they still resolve, roles and all');
     assert.equal((await app.call('GET', `/shifts/${shiftId}`)).body.employees[0].employee_id, used.id, 'the shift still has them');
     const back = await app.call('POST', '/employees', { name: 'used' });
-    assert.deepEqual([back.status, back.body.id, back.body.archived, back.body.role], [200, used.id, false, 'Server'], 'adding the name again brings the same person back');
+    assert.deepEqual([back.status, back.body.id, back.body.archived, back.body.roles], [200, used.id, false, ['Server']], 'adding the name again brings the same person back');
     await app.call('DELETE', `/shifts/${shiftId}?hard=1`);
     assert.deepEqual((await app.call('DELETE', `/employees/${used.id}`)).body, { archived: false }, 'once no shift has them, they can really go');
   }));
@@ -188,7 +196,7 @@ test('/employees: removing deletes someone who never worked a shift, but archive
 test('/employees/summary: per-person shifts, hours and tips, derived on each read, leaving out deleted shifts and people who never worked', () =>
   withApp(async (app) => {
     const ana = (await app.call('POST', '/employees', { name: 'Ana' })).body;
-    const ben = (await app.call('POST', '/employees', { name: 'Ben', role: 'Barback' })).body;
+    const ben = (await app.call('POST', '/employees', { name: 'Ben', roles: ['Barback'] })).body;
     await app.call('POST', '/employees', { name: 'Cleo' });
     const put = (id, date, employees) => app.call('PUT', `/shifts/${id}`, shiftDoc(undefined, {
       start_at: `${date}T17:00`, end_at: `${date}T23:00`, employees,
@@ -220,7 +228,7 @@ test('a soft-deleted shift still holds its employees, so they are archived, not 
 test('staff on a shift read back by name; leaving them out clears them; their tips and hours add to the shift totals', () =>
   withApp(async (app) => {
     const ids = {};
-    for (const [name, role] of [['Cleo', 'Bartender'], ['Ana', null], ['Ben', 'Barback']]) ids[name] = (await app.call('POST', '/employees', { name, role })).body.id;
+    for (const [name, roles] of [['Cleo', ['Bartender']], ['Ana', []], ['Ben', ['Barback']]]) ids[name] = (await app.call('POST', '/employees', { name, roles })).body.id;
     const id = randomUUID();
     // you: 5pm to 1am (8h paid, $300 tips). Ana 5pm-1am, no tips given. Cleo 6pm-11pm, $100 tips. Ben is a barback: tips count, hours don't.
     const put = await app.call('PUT', `/shifts/${id}`, shiftDoc(undefined, {
@@ -237,7 +245,7 @@ test('staff on a shift read back by name; leaving them out clears them; their ti
     assert.equal(d.staff_tips_cents, 30000 + 10000 + 4000, 'everyone\'s tips, yours included');
     assert.equal(d.staff_tips_per_bartender_hour_cents, Math.round((44000 * 60) / 1260), '$34.92 per bartender hour');
     // change a role and the totals follow (they are derived on every read)
-    await app.call('PATCH', `/employees/${ids.Ana}`, { role: 'Server' });
+    await app.call('PATCH', `/employees/${ids.Ana}`, { roles: ['Server'] });
     assert.deepEqual([(await app.call('GET', `/shifts/${id}`)).body.derived.bartender_count, (await app.call('GET', `/shifts/${id}`)).body.derived.bartender_minutes], [2, 480 + 300]);
     assert.equal((await app.call('PUT', `/shifts/${id}`, shiftDoc(undefined))).body.employees.length, 0, 'leaving them out clears them');
     assert.deepEqual((await app.call('GET', `/shifts/${id}`)).body.derived.bartender_count, 1);

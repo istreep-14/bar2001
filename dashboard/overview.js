@@ -41,7 +41,7 @@ export function createOverview({ data, derive, pane, onLoadMore }) {
       return;
     }
     const tph = tipsPerHour(all);
-    const types = ['day', 'night', 'double'].filter((t) => sum.byType[t].n);
+    const types = ['day', 'night'].filter((t) => sum.byType[t].n);
     const typeMix = types.map((t) => `${sum.byType[t].n} ${TYPE_NAME[t].toLowerCase()}`).join(' · ');
 
     const { monthly, buckets } = periods(sum.rows, { from, to });
@@ -68,8 +68,8 @@ export function createOverview({ data, derive, pane, onLoadMore }) {
       title: 'Tips per hour, shift by shift', sub: 'each dot is a shift, oldest to newest; the line is your average', valueLabel: 'Tips per hour',
       fmt: (dollars) => usd0(dollars * 100), avg: tph == null ? null : tph / 100,
       data: sum.rows.filter((r) => r.d.tips_per_hour_cents != null).map(({ s, d }) => ({
-        xlabel: shortDate(s.work_date).replace(/^\w+, /, ''), title: `${shortDate(s.work_date)} · ${TYPE_NAME[s.shift_type]}`, y: d.tips_per_hour_cents / 100, cls: 'k-' + s.shift_type,
-        rows: [[`per hour over ${hours1(d.paid_minutes)}`, usd(d.tips_per_hour_cents), 'k-' + s.shift_type], ['Tips', usd(d.tips_cents)], ['Total income', usd(d.total_income_cents)]],
+        xlabel: shortDate(s.work_date).replace(/^\w+, /, ''), title: `${shortDate(s.work_date)} · ${TYPE_NAME[s.shift_type] ?? 'Shift'}`, y: d.tips_per_hour_cents / 100, cls: 'k-' + (s.shift_type ?? 'none'),
+        rows: [[`per hour over ${hours1(d.paid_minutes)}`, usd(d.tips_per_hour_cents), 'k-' + (s.shift_type ?? 'none')], ['Tips', usd(d.tips_cents)], ['Total income', usd(d.total_income_cents)]],
       })),
       key: types.map((t) => ({ cls: 'k-' + t, label: TYPE_NAME[t] })),
     });
@@ -77,7 +77,7 @@ export function createOverview({ data, derive, pane, onLoadMore }) {
     const perHourFmt = (c) => usd0(c);
     const typeBars = hbars({
       title: 'Tips per hour by shift type', sub: 'number = shifts', fmt: perHourFmt,
-      data: ['day', 'night', 'double'].map((t) => ({ label: TYPE_NAME[t], note: sum.byType[t].n ? String(sum.byType[t].n) : '', value: sum.byType[t].n ? tipsPerHour(sum.byType[t]) : null, cls: 'k-' + t, title: `${TYPE_NAME[t]}: ${usd(sum.byType[t].tips)} tips over ${hours1(sum.byType[t].minutes)}` })),
+      data: ['day', 'night'].map((t) => ({ label: TYPE_NAME[t], note: sum.byType[t].n ? String(sum.byType[t].n) : '', value: sum.byType[t].n ? tipsPerHour(sum.byType[t]) : null, cls: 'k-' + t, title: `${TYPE_NAME[t]}: ${usd(sum.byType[t].tips)} tips over ${hours1(sum.byType[t].minutes)}` })),
     });
     const dayBars = hbars({
       title: 'Tips per hour by weekday', sub: 'number = shifts', fmt: perHourFmt,

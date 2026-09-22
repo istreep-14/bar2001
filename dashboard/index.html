@@ -9,63 +9,56 @@
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="topbar">
-    <h1 class="brand">Bar2.000</h1>
-    <nav class="views" aria-label="Views">
-      <button type="button" data-view="shifts">Shifts</button>
-      <button type="button" data-view="employees">Employees</button>
+<div class="shell">
+  <aside class="rail">
+    <nav class="rail1" id="groupNav" aria-label="Sections">
+      <div class="brandmark" title="Bar2.000"><b>B2</b><span>Live</span></div>
+      <button type="button" class="gtile" data-group="shift" aria-current="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/></svg>
+        <span>Shift</span>
+      </button>
+      <button type="button" class="gtile" data-group="employees">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><path d="M2.5 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.3 12.3c2.7.3 4.7 2.5 4.7 5.7"/></svg>
+        <span>Employees</span>
+      </button>
+      <button type="button" class="gtile" data-group="lists">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.4"/><circle cx="4" cy="12" r="1.4"/><circle cx="4" cy="18" r="1.4"/></svg>
+        <span>Lists</span>
+      </button>
     </nav>
-    <span id="status" class="status"><i class="dot"></i><span id="statusText">Connecting…</span></span>
-    <span id="lastEvent" class="muted"></span>
-    <div id="counts" class="counts" aria-label="Row counts"></div>
-  </header>
+    <div class="rail2">
+      <nav id="nav" aria-label="Pages"></nav>
+    </div>
+  </aside>
 
-  <form id="auth" class="auth" hidden>
-    <span>This server needs an API token:</span>
-    <input id="token" type="password" autocomplete="off" placeholder="API_TOKEN" aria-label="API token">
-    <button type="submit" class="btn btn-primary">Connect</button>
-  </form>
+  <div class="main">
+    <div class="topbar">
+      <span id="status" class="status"><i class="dot"></i><span id="statusText">Connecting…</span></span>
+      <span id="lastEvent" class="muted"></span>
+      <div id="counts" class="counts" aria-label="Row counts"></div>
+      <span class="spacer"></span>
+      <button id="newShift" class="btn btn-primary" type="button">+ New shift</button>
+    </div>
 
-  <div id="shiftsView" class="workbench">
-    <nav id="sidePanel" class="panel leftnav" aria-label="Sections">
-      <div class="navhead">
-        <h2 id="navTitle">Shifts</h2>
-        <button id="newShift" class="btn btn-primary" type="button">+ New shift</button>
-      </div>
-      <div class="navgroups">
-      <div class="navgroup">
-        <h3 class="navlabel">Browse</h3>
-        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Browse">
-          <button type="button" role="tab" id="tabOverview" data-tab="overview" aria-controls="paneOverview" hidden><span class="tabname">Overview</span><span class="tabsum"></span></button>
-          <button type="button" role="tab" id="tabCalendar" data-tab="calendar" aria-controls="paneCalendar" hidden><span class="tabname">Calendar</span><span class="tabsum"></span></button>
-          <button type="button" role="tab" id="tabShifts" data-tab="shifts" aria-controls="paneShifts" hidden><span class="tabname">Shifts</span><span class="tabsum"></span></button>
-          <button type="button" role="tab" id="tabFeed" data-tab="feed" aria-controls="paneFeed" hidden><span class="tabname">Live feed</span><span class="tabsum"></span></button>
-        </div>
-      </div>
-      <div class="navgroup">
-        <h3 class="navlabel">Lists</h3>
-        <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Lists">
-          <button type="button" role="tab" id="tabListLocations" data-tab="listLocations" aria-controls="paneListLocations" hidden><span class="tabname">Locations</span><span class="tabsum"></span></button>
-          <button type="button" role="tab" id="tabListTypes" data-tab="listTypes" aria-controls="paneListTypes" hidden><span class="tabname">Misc types</span><span class="tabsum"></span></button>
-          <button type="button" role="tab" id="tabListRates" data-tab="listRates" aria-controls="paneListRates" hidden><span class="tabname">Wage rates</span><span class="tabsum"></span></button>
-        </div>
-      </div>
-      </div>
-    </nav>
-    <div class="panes">
-    <section id="paneOverview" class="panel pane" role="tabpanel" data-tab="overview" aria-labelledby="tabOverview" hidden>
+    <form id="auth" class="auth" hidden>
+      <span>This server needs an API token:</span>
+      <input id="token" type="password" autocomplete="off" placeholder="API_TOKEN" aria-label="API token">
+      <button type="submit" class="btn btn-primary">Connect</button>
+    </form>
+
+    <div class="page" id="page">
+    <section id="paneOverview" class="panel pane" data-tab="overview" hidden>
       <div class="panel-head">
         <h2>Overview</h2>
         <div class="seg tabs" role="radiogroup" aria-label="Range" data-range></div>
       </div>
       <div class="pane-body wide" data-overview></div>
     </section>
-    <section id="paneCalendar" class="panel pane" role="tabpanel" data-tab="calendar" aria-labelledby="tabCalendar" hidden>
+    <section id="paneCalendar" class="panel pane" data-tab="calendar" hidden>
       <div class="panel-head"><h2>Calendar</h2><span class="muted">Open a shift from its chip, or pick an empty day to log one.</span></div>
       <div class="pane-body wide" data-calendar></div>
     </section>
-    <section id="paneShifts" class="panel" role="tabpanel" data-tab="shifts" aria-labelledby="tabShifts" hidden>
+    <section id="paneShifts" class="panel" data-tab="shifts" hidden>
       <div class="panel-head">
         <h2>Shifts</h2>
         <div class="toolbar">
@@ -82,33 +75,31 @@
       <div id="empty" class="empty" hidden>No shifts yet. Add your first with <b>+ New shift</b>.</div>
       <button id="more" class="more" type="button" hidden>Load older shifts</button>
     </section>
-    <section id="paneFeed" class="panel pane" role="tabpanel" data-tab="feed" aria-labelledby="tabFeed" hidden>
+    <section id="paneFeed" class="panel pane" data-tab="feed" hidden>
         <div class="panel-head"><h2>Live feed</h2></div>
         <div class="pane-body flush">
         <ol id="feed" class="feed" role="log" aria-live="polite"></ol>
         <div id="feedEmpty" class="empty">Waiting for changes…</div>
         </div>
       </section>
-    <section id="paneListLocations" class="panel pane" role="tabpanel" data-tab="listLocations" aria-labelledby="tabListLocations" hidden>
+    <section id="paneListLocations" class="panel pane" data-tab="listLocations" hidden>
         <div class="panel-head"><h2>Locations</h2></div>
         <div class="pane-body">
           <section class="fsec" data-list="locations"></section>
         </div>
       </section>
-    <section id="paneListTypes" class="panel pane" role="tabpanel" data-tab="listTypes" aria-labelledby="tabListTypes" hidden>
+    <section id="paneListTypes" class="panel pane" data-tab="listTypes" hidden>
         <div class="panel-head"><h2>Misc types</h2></div>
         <div class="pane-body">
           <section class="fsec" data-list="income_categories"></section>
         </div>
       </section>
-    <section id="paneListRates" class="panel pane" role="tabpanel" data-tab="listRates" aria-labelledby="tabListRates" hidden>
+    <section id="paneListRates" class="panel pane" data-tab="listRates" hidden>
         <div class="panel-head"><h2>Wage rates</h2></div>
         <div class="pane-body">
           <section class="fsec" data-list="wage_rates"></section>
         </div>
       </section>
-    </div>
-  </div>
 
   <div id="employeesPage" hidden>
     <div id="employeesView" class="workspace">
@@ -124,13 +115,20 @@
         </div>
         <div id="rosterScroll" class="scroll">
           <table class="roster">
-            <caption class="sr">Employees grouped by role, with what each has worked so far</caption>
-            <thead><tr><th>Name</th><th class="num">Shifts</th><th class="num">Hours</th><th class="num">Tips</th><th class="num hide-sm">Last worked</th></tr></thead>
+            <caption class="sr">Employees, with what each has worked so far</caption>
+            <thead id="rosterHead"><tr>
+              <th aria-sort="ascending"><button type="button" class="colsort" data-sort="name">Name</button></th>
+              <th><button type="button" class="colsort" data-sort="roles">Roles</button></th>
+              <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="shifts">Shifts</button></th>
+              <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="hours">Hours</button></th>
+              <th class="num" aria-sort="none"><button type="button" class="colsort" data-sort="tips">Tips</button></th>
+              <th class="num hide-sm" aria-sort="none"><button type="button" class="colsort" data-sort="last">Last worked</button></th>
+            </tr></thead>
             <tbody id="rosterRows"></tbody>
           </table>
         </div>
         <div id="employeesEmpty" class="empty" hidden>No employees yet. Add the first above, or type a name in a shift.</div>
-        <p class="tablenote muted">Grouped by role. Shifts, hours and tips are what each person has on the shifts you logged: hours are their own start to end, so a shift without their times adds a shift but no hours. Role decides who counts as a bartender in a shift's totals: blank or Bartender does; anything else (Barback, Server…) doesn't, though their tips still count towards the shift.</p>
+        <p class="tablenote muted">Click a column to sort. Shifts, hours and tips are what each person has on the shifts you logged: hours are their own start to end, so a shift without their times adds a shift but no hours. Roles decide who counts as a bartender in a shift's totals: no roles or Bartender among them does; otherwise (Barback, Server…) it doesn't, though their tips still count towards the shift.</p>
         <datalist id="roleList"></datalist>
       </section>
 
@@ -141,8 +139,15 @@
           <section class="tier" aria-labelledby="profileTitle">
             <h3 id="profileTitle">Profile</h3>
             <label class="field">Name<input id="pName" maxlength="100" autocomplete="off"></label>
-            <label class="field">Role<input id="pRole" list="roleList" maxlength="50" autocomplete="off" placeholder="Bartender"></label>
+            <div class="namepair">
+              <label class="field">First<input id="pFirst" maxlength="60" autocomplete="off"></label>
+              <label class="field">Last<input id="pLast" maxlength="60" autocomplete="off"></label>
+            </div>
+            <label class="field">ID number<input id="pIdNumber" maxlength="50" autocomplete="off"></label>
+            <div class="field">Roles<div id="pRoles" class="chipfield"></div></div>
             <p id="roleHint" class="muted"></p>
+            <label class="check"><input type="checkbox" id="pManager"> Manager</label>
+            <label class="check"><input type="checkbox" id="pIsMe"> This is me</label>
             <label class="field">Notes<textarea id="pNotes" maxlength="2000" placeholder="Anything to remember"></textarea></label>
             <div id="sideMsg" class="lmsg" role="status"></div>
           </section>
@@ -161,7 +166,22 @@
       </aside>
     </div>
   </div>
+    </div>
+  </div>
 </div>
+
+<div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+<aside id="shiftDrawer" class="drawer" aria-label="Shift preview">
+  <div class="drawer-head">
+    <h2 id="drawerTitle"></h2>
+    <button type="button" id="drawerClose" class="btn" aria-label="Close preview">Close</button>
+  </div>
+  <div id="drawerBody" class="drawer-body"></div>
+  <div class="drawer-foot">
+    <button type="button" id="drawerEdit" class="btn btn-primary">Edit</button>
+    <button type="button" id="drawerDelete" class="btn btn-danger"></button>
+  </div>
+</aside>
 
 <dialog id="shiftDialog" class="modal" aria-labelledby="dlgTitle">
   <form id="shiftForm" novalidate>
@@ -246,9 +266,8 @@
                 <div id="typeSeg" class="seg cards" role="radiogroup" aria-label="Shift type">
                   <label class="k-day"><input type="radio" name="shiftType" value="day"><b>Day</b><span class="typehist" data-hist="day"></span></label>
                   <label class="k-night"><input type="radio" name="shiftType" value="night"><b>Night</b><span class="typehist" data-hist="night"></span></label>
-                  <label class="k-double"><input type="radio" name="shiftType" value="double"><b>Double</b><span class="typehist" data-hist="double"></span></label>
                 </div>
-                <div class="muted">Required. Under each type is what your tips per hour has averaged on it. On a Double, each income entry says whether it was for the day, the night, or combined.</div>
+                <div class="muted">Optional. Seeded from the start time (3:00 PM or later is Night) until you pick one yourself. Under each type is what your tips per hour has averaged on it. A shift that runs day into night is just two separate shifts, not a "double".</div>
               </section>
             </div>
           </section>
@@ -257,7 +276,6 @@
               <section class="fsec">
                 <div id="tipRows" class="rows"></div>
                 <div><button type="button" id="addTips" class="linkbtn">+ Add tips</button></div>
-                <div id="combinedHint" class="muted" hidden>Not sure how it split? Choose “Combined” for that entry.</div>
                 <div id="tipFacts"></div>
               </section>
             </div>
@@ -364,8 +382,9 @@ const $ = (id) => document.getElementById(id);
 const state = {
   locations: new Map(), employees: new Map(), incomeCategories: new Map(), wageRates: new Map(), shifts: new Map(),   // list entries include archived ones, so old shifts still resolve
   purged: new Set(),          // ids purged this session, so a stale snapshot can't resurrect them
-  cursor: null, feed: [], seen: new Set(), expanded: new Set(), raw: new Set(), flash: new Map(),
+  cursor: null, feed: [], seen: new Set(), flash: new Map(),
   counts: null, instance: null, lastEventAt: null, armed: null,   // armed: the row whose Delete is waiting for a second click
+  drawer: null, drawerRaw: false, drawerArmed: false,             // the shift previewed in the drawer, and its own raw/delete-arm state
 };
 
 // ---- helpers -------------------------------------------------------------------------
@@ -498,8 +517,11 @@ async function snapshot() {
   const fresh = new Set(page.shifts.map((s) => s.id));
   for (const s of page.shifts) upsertShift(s);
   const floor = page.next_cursor ? page.shifts.at(-1).start_at : '';   // the window this page covers
+  // An undated shift sorts after every dated one (in the list and in this window), so its absence here doesn't
+  // mean it was deleted server-side; only a dated shift inside the window can be safely pruned.
   for (const [id, s] of state.shifts) {
-    if (!fresh.has(id) && s.start_at >= floor && s.updated_at < cutoff) state.shifts.delete(id);
+    const inWindow = s.start_at !== null && (floor === null || s.start_at >= floor);
+    if (!fresh.has(id) && inWindow && s.updated_at < cutoff) state.shifts.delete(id);
   }
   state.cursor = page.next_cursor;
   state.counts = stats.counts;
@@ -527,9 +549,9 @@ const employeeName = (id) => state.employees.get(id)?.name ?? 'Removed employee'
 
 const isTips = (m) => state.incomeCategories.get(m.category_id)?.system === true;
 const incomeName = (m) => state.incomeCategories.get(m.category_id)?.name ?? 'Income';
-const roleOf = (id) => state.employees.get(id)?.role ?? null;
+const rolesOf = (id) => state.employees.get(id)?.roles ?? [];
 // One shift's worked-out figures, from the wage history and roles as they are now (the server derives the same numbers with the same code).
-const derive = (s) => deriveShift(s, [...state.wageRates.values()], roleOf);
+const derive = (s) => deriveShift(s, [...state.wageRates.values()], rolesOf);
 
 // One money cell: the amount in whole dollars, and what it comes to per hour worked underneath. Hovering gives the
 // exact figures. Nothing entered shows a dash.
@@ -554,7 +576,7 @@ function shortTime(dt) {
   return (hh % 12 || 12) + ':' + String(mm).padStart(2, '0') + (hh < 12 ? 'a' : 'p');
 }
 function shiftRow(s) {
-  const open = state.expanded.has(s.id);
+  const open = state.drawer === s.id;
   const flashing = Date.now() - (state.flash.get(s.id) || 0) < 1700;
   const armed = state.armed === s.id;
   // Everything on this row is worked out from the shift, the employees and your wage history each time it is drawn, so
@@ -571,11 +593,14 @@ function shiftRow(s) {
   const staffNote = s.employees.length
     ? `${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'} including you, ${hoursText(d.bartender_minutes)} between you\nTips made by everyone on the shift: ${usd(d.staff_tips_cents)}` + (d.staff_tips_per_bartender_hour_cents === null ? '' : ` (${usd(d.staff_tips_per_bartender_hour_cents)} per bartender hour)`)
     : null;
+  const shiftName = s.work_date || 'this shift';
   const tr = h('tr', { class: 'shift' + (s.deleted_at ? ' deleted' : '') + (flashing ? ' flash' : ''), 'data-id': s.id },
-    h('td', { class: 'when day', title: where.join(' · ') || null }, dateLabel(s.work_date)),
-    h('td', { class: 'kind' }, h('span', { class: 'badge badge-' + s.shift_type }, s.shift_type), d.has_party ? h('span', { class: 'badge badge-party', title: partyText }, 'Party') : null),
+    h('td', { class: 'when day', title: where.join(' · ') || null }, s.work_date ? dateLabel(s.work_date) : dash('No date set')),
+    h('td', { class: 'kind' }, s.shift_type ? h('span', { class: 'badge badge-' + s.shift_type }, s.shift_type) : null, d.has_party ? h('span', { class: 'badge badge-party', title: partyText }, 'Party') : null),
     h('td', { class: 'place' }, locationName(s) || dash()),
-    h('td', { class: 'span', title: 'Ran ' + fmtTime(s.start_at) + ' to ' + fmtTime(s.end_at) }, shortTime(s.start_at) + '–' + shortTime(s.end_at)),
+    s.start_at && s.end_at
+      ? h('td', { class: 'span', title: 'Ran ' + fmtTime(s.start_at) + ' to ' + fmtTime(s.end_at) }, shortTime(s.start_at) + '–' + shortTime(s.end_at))
+      : h('td', { class: 'span' }, dash('No times set')),
     h('td', { class: 'num hrs', title: (d.paid_minutes / 60).toFixed(2) + ' hours worked' + breaksOff }, hoursText(d.paid_minutes)),
     money(d.tips_cents),
     rate(d.tips_per_hour_cents, d.tips_cents > 0),
@@ -587,33 +612,68 @@ function shiftRow(s) {
     rate(d.total_per_hour_cents, d.total_income_cents > 0),
     s.employees.length ? h('td', { class: 'num', title: staffNote }, d.bartender_count + ' · ' + hoursText(d.bartender_minutes)) : h('td', { class: 'num' }, dash()),
     h('td', { class: 'actions' }, h('div', { class: 'btns' },
-      iconButton('edit', 'edit', 'Edit shift ' + s.work_date),
-      iconButton('details', 'details', (open ? 'Hide' : 'Show') + ' details for ' + s.work_date, { class: open ? 'on' : '', attrs: { 'aria-expanded': String(open) } }),
+      iconButton('edit', 'edit', 'Edit shift ' + shiftName),
+      iconButton('details', 'details', (open ? 'Hide' : 'Show') + ' preview for ' + shiftName, { class: open ? 'on' : '', attrs: { 'aria-expanded': String(open) } }),
       s.deleted_at ? null : armed
-        ? iconButton('delete', 'trash', 'Click again to delete shift ' + s.work_date, { class: 'armed', text: 'Delete?' })
-        : iconButton('delete', 'trash', 'Delete shift ' + s.work_date, { class: 'danger' }))));
-  return open ? [tr, detailRow(s, d)] : [tr];
+        ? iconButton('delete', 'trash', 'Click again to delete shift ' + shiftName, { class: 'armed', text: 'Delete?' })
+        : iconButton('delete', 'trash', 'Delete shift ' + shiftName, { class: 'danger' }))));
+  return tr;
 }
 
-// What is under a shift's arrow: what didn't fit a cell, and the raw record.
-function detailRow(s, d) {
-  const raw = state.raw.has(s.id);
+// What the drawer shows for a shift: the same figures as the row plus what didn't fit a cell, and the raw record.
+function drawerBody(s, d) {
+  const raw = state.drawerRaw;
   const other = s.money_entries.filter((m) => !isTips(m));
   const item = (label, ...body) => [h('dt', null, label), h('dd', null, ...body)];
-  const rows = [];
+  const rows = [
+    item('When', s.work_date ? dateLabel(s.work_date) : 'No date set'),
+    item('Time', s.start_at && s.end_at ? fmtTime(s.start_at) + ' – ' + fmtTime(s.end_at) + ' (' + hoursText(d.paid_minutes) + ')' : 'No times set'),
+    item('Tips', d.tips_cents > 0 ? usd(d.tips_cents) + (d.tips_per_hour_cents === null ? '' : ' · ' + usd(d.tips_per_hour_cents) + '/hr') : '—'),
+    item('Wage', d.estimated_wage_cents === null ? 'No hourly rate applies to this date' : usd(d.estimated_wage_cents) + ' · ' + hoursText(d.paid_minutes) + ' × ' + usd(d.wage_rate_cents) + '/hr'),
+    item('Total', usd(d.total_income_cents) + (d.total_per_hour_cents === null ? '' : ' · ' + usd(d.total_per_hour_cents) + '/hr')),
+  ];
   if (other.length) rows.push(item('Other income', other.map((m) => incomeName(m) + ' ' + usd(m.value_cents)).join(' · ')));
+  if (locationName(s)) rows.push(item('Location', locationName(s)));
   if (s.breaks.length) rows.push(item('Breaks', s.breaks.map((b) => breakText(b).replace(/^break /, '')).join(' · ')));
   if (s.employees.length) {
     rows.push(item('Crew', h('div', null, `${d.bartender_count} bartender${d.bartender_count === 1 ? '' : 's'} including you · ${hoursText(d.bartender_minutes)} between you · staff tips ${usd(d.staff_tips_cents)}` + (d.staff_tips_per_bartender_hour_cents === null ? '' : ` (${usd(d.staff_tips_per_bartender_hour_cents)} per bartender hour)`)),
-      ...s.employees.map((e) => h('div', { class: 'muted' }, `${employeeName(e.employee_id)}${roleOf(e.employee_id) ? ' (' + roleOf(e.employee_id) + ')' : ''}: `
+      ...s.employees.map((e) => h('div', { class: 'muted' }, `${employeeName(e.employee_id)}${rolesOf(e.employee_id).length ? ' (' + rolesOf(e.employee_id).join(', ') + ')' : ''}: `
         + (e.start_at ? hoursText(Math.round((Date.parse(e.end_at + ':00Z') - Date.parse(e.start_at + ':00Z')) / 60000)) : 'no times')
         + (e.tips_cents != null ? ', tips ' + usd(e.tips_cents) : '')))));
   }
   if (s.parties.length) rows.push(item('Party', s.parties.map((p) => [p.name || 'Party', p.guests ? p.guests + ' guests' : '', p.start_at ? fmtTime(p.start_at) + '–' + fmtTime(p.end_at) : ''].filter(Boolean).join(' · ')).join('; ')));
   if (s.tags.length || s.notes) rows.push(item('Notes', [s.tags.length ? s.tags.join(', ') : '', s.notes ?? ''].filter(Boolean).join(' · ')));
-  const toggle = h('button', { type: 'button', class: 'linkbtn', 'data-act': 'raw', 'aria-expanded': String(raw) }, raw ? 'Hide raw data' : 'Show raw data');
-  return h('tr', { class: 'detail', 'data-id': s.id },
-    h('td', { colspan: String(COLS) }, rows.length ? h('dl', { class: 'facts-grid' }, ...rows.flat()) : null, h('div', null, toggle), raw ? h('pre', null, JSON.stringify(s, null, 2)) : null));
+  const toggle = h('button', { type: 'button', class: 'linkbtn', id: 'drawerRawToggle', 'aria-expanded': String(raw) }, raw ? 'Hide raw data' : 'Show raw data');
+  return [h('dl', { class: 'facts-grid' }, ...rows.flat()), h('div', null, toggle), raw ? h('pre', null, JSON.stringify(s, null, 2)) : null];
+}
+
+// ---- the shift preview drawer: slides in from the right; Edit hands off to the full dialog ------------
+function renderDrawer() {
+  const s = state.drawer && state.shifts.get(state.drawer);
+  if (state.drawer && !s) state.drawer = null; // the shift was purged from under the preview
+  $('shiftDrawer').classList.toggle('open', !!s);
+  $('drawerBackdrop').hidden = !s;
+  if (!s) return;
+  const d = derive(s);
+  $('drawerTitle').textContent = s.work_date ? dateLabel(s.work_date) : 'This shift';
+  $('drawerBody').replaceChildren(...drawerBody(s, d).filter(Boolean));
+  $('drawerDelete').hidden = !!s.deleted_at;
+  $('drawerDelete').textContent = state.drawerArmed ? 'Click again to delete' : 'Delete';
+  $('drawerDelete').classList.toggle('armed', state.drawerArmed);
+}
+function openDrawer(id) {
+  state.drawer = id;
+  state.drawerRaw = false;
+  state.drawerArmed = false;
+  renderDrawer();
+}
+function closeDrawer() {
+  if (!state.drawer) return;
+  const id = state.drawer;
+  state.drawer = null;
+  state.drawerArmed = false;
+  renderDrawer();
+  document.querySelector(rowSel(id, 'details'))?.focus();
 }
 
 // A month heading with what it came to (left off for the oldest loaded month while older shifts are still unloaded, since it may be partial).
@@ -624,8 +684,11 @@ function monthRow(key, shifts, partial) {
     const d = derive(s);
     sum.n += 1; sum.minutes += d.paid_minutes; sum.tips += d.tips_cents; sum.total += d.total_income_cents;
   }
-  const [y, m] = key.split('-').map(Number);
-  const label = monthName(m - 1) + (y === new Date().getFullYear() ? '' : ' ' + y);
+  let label = 'No date';
+  if (key !== 'undated') {
+    const [y, m] = key.split('-').map(Number);
+    label = monthName(m - 1) + (y === new Date().getFullYear() ? '' : ' ' + y);
+  }
   return h('tr', { class: 'month' }, h('th', { colspan: String(COLS), scope: 'colgroup' },
     h('span', { class: 'mname' }, label),
     sum.n && !partial ? h('span', { class: 'msum' }, `${sum.n} shift${sum.n === 1 ? '' : 's'} · ${hoursText(sum.minutes)} · ${usd0(sum.tips)} tips · ${usd0(sum.total)} total`) : null));
@@ -657,16 +720,19 @@ function toast(text) {
 
 function renderShifts() {
   const showDeleted = $('showDeleted').checked;
+  // A shift with no start time falls back to midnight of its date, so it still groups with the rest of
+  // that month; one with no date at all falls all the way to the bottom, out of the way.
+  const startKey = (s) => s.start_at ?? (s.work_date ? s.work_date + 'T00:00' : '');
   const list = [...state.shifts.values()]
     .filter((s) => showDeleted || !s.deleted_at)
-    .sort((a, b) => (a.start_at < b.start_at ? 1 : a.start_at > b.start_at ? -1 : a.id < b.id ? 1 : -1));
+    .sort((a, b) => (startKey(a) < startKey(b) ? 1 : startKey(a) > startKey(b) ? -1 : a.id < b.id ? 1 : -1));
   // The table is rebuilt on every change (live updates included), so put keyboard focus back on
   // the same row button afterwards instead of dropping it to the page.
   const active = document.activeElement;
   const focusRow = active?.closest?.('#rows') && active.dataset?.act ? [active.closest('tr[data-id]').dataset.id, active.dataset.act] : null;
   const months = [];   // the list is newest first, so a month's shifts are next to each other
   for (const s of list) {
-    const key = s.work_date.slice(0, 7);
+    const key = s.work_date ? s.work_date.slice(0, 7) : 'undated';
     if (months.at(-1)?.key !== key) months.push({ key, shifts: [] });
     months.at(-1).shifts.push(s);
   }
@@ -692,7 +758,7 @@ function renderBrowse() {
   if (!$('paneCalendar').hidden) calendar.render();
   overview.render();
 }
-function renderAll() { renderCounts(); renderShifts(); renderFeed(); renderBrowse(); }
+function renderAll() { renderCounts(); renderShifts(); renderFeed(); renderBrowse(); renderDrawer(); }
 let raf = 0;
 function scheduleRender() { cancelAnimationFrame(raf); raf = requestAnimationFrame(renderAll); }
 
@@ -765,7 +831,7 @@ async function run() {
 }
 
 // ---- wiring --------------------------------------------------------------------------
-const rowSel = (id, act) => (act === 'raw' ? `tr.detail[data-id="${CSS.escape(id)}"] button[data-act="raw"]` : `tr.shift[data-id="${CSS.escape(id)}"] button[data-act="${act}"]`);
+const rowSel = (id, act) => `tr.shift[data-id="${CSS.escape(id)}"] button[data-act="${act}"]`;
 $('rows').addEventListener('click', (ev) => {
   // Only the row's buttons do anything; a click anywhere else on a row does nothing.
   const button = ev.target.closest('button[data-act]');
@@ -787,11 +853,31 @@ $('rows').addEventListener('click', (ev) => {
     document.querySelector(rowSel(id, 'delete'))?.focus();
     return;
   }
-  if (state.armed) disarm();
-  const set = act === 'raw' ? state.raw : state.expanded;   // the arrow opens the details; "Show raw data" is inside them
-  set.has(id) ? set.delete(id) : set.add(id);
-  renderShifts();
-  document.querySelector(rowSel(id, act))?.focus();
+  if (act === 'details') {
+    if (state.armed) disarm();
+    state.drawer === id ? closeDrawer() : openDrawer(id);
+  }
+});
+
+// The drawer: Close/backdrop/Esc dismiss it; Edit hands off to the full dialog; Delete asks twice, like a row's.
+$('drawerClose').addEventListener('click', closeDrawer);
+$('drawerBackdrop').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && state.drawer) closeDrawer(); });
+$('drawerEdit').addEventListener('click', () => {
+  const shift = state.drawer && state.shifts.get(state.drawer);
+  if (!shift) return;
+  const id = shift.id;
+  closeDrawer();
+  form.openEdit(shift, rowSel(id, 'edit'));
+});
+$('drawerDelete').addEventListener('click', () => {
+  if (!state.drawer) return;
+  if (state.drawerArmed) return void deleteShift(state.drawer);
+  state.drawerArmed = true;
+  renderDrawer();
+});
+$('drawerBody').addEventListener('click', (ev) => {
+  if (ev.target.closest('#drawerRawToggle')) { state.drawerRaw = !state.drawerRaw; renderDrawer(); }
 });
 $('showDeleted').addEventListener('change', renderShifts);
 $('more').addEventListener('click', () => loadMore().catch(onError));
@@ -803,14 +889,21 @@ $('auth').addEventListener('submit', (ev) => {
 });
 const isAuthError = (err) => err instanceof AuthError;
 const onAuth = () => onError(new AuthError());
-const side = createSidePanel();
 const stepper = createStepper();
-const lists = createListsManager({
-  h, request, data: state, side, isAuthError, onAuth,
-  onChange() { form.listsChanged(); scheduleStats(); renderAll(); },
-});
 const employeesView = createEmployeesManager({
   h, request, data: state, isAuthError, onAuth, format: { dateLabel, usd, usd0 },
+  onChange() { form.listsChanged(); scheduleStats(); renderAll(); },
+});
+// The rail's three groups: Shift and Lists are pages inside #page, drawn by side.show(); Employees is a
+// solo group with its own show/hide (a table plus the side panel for whoever is selected, not a "page").
+const side = createSidePanel({
+  onGroup(group) {
+    if (group === 'employees') employeesView.show(); else employeesView.hide();
+    $('newShift').hidden = group !== 'shift';
+  },
+});
+const lists = createListsManager({
+  h, request, data: state, side, isAuthError, onAuth,
   onChange() { form.listsChanged(); scheduleStats(); renderAll(); },
 });
 const form = createShiftForm({
@@ -827,21 +920,8 @@ const calendar = createCalendar({
 document.querySelector('[data-calendar]').append(calendar.el);
 const overview = createOverview({ data: state, derive, pane: $('paneOverview'), onLoadMore: () => loadMore().catch(onError) });
 document.addEventListener('sidepaint', renderBrowse);   // a page was switched to: draw it now, it was skipped while hidden
-// The two views share the header: Shifts (table and live feed) and Employees (roster and side panel). The address
-// carries which one, so a reload or the back button keeps it.
-function applyView() {
-  const view = location.hash === '#employees' ? 'employees' : 'shifts';
-  $('shiftsView').hidden = view !== 'shifts';
-  if (view === 'employees') employeesView.show(); else employeesView.hide();
-  for (const b of document.querySelectorAll('.views button')) {
-    if (b.dataset.view === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-  }
-}
-for (const b of document.querySelectorAll('.views button')) b.addEventListener('click', () => { location.hash = b.dataset.view; });
-addEventListener('hashchange', applyView);
 $('newShift').addEventListener('click', () => form.openNew('#newShift'));
 setInterval(renderFeed, 30000); // keeps "recent" styling honest without new events
-applyView();
 run();
 </script>
 </body>

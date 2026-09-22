@@ -45,17 +45,22 @@
   --warn: #b45309;
   --bad: #b91c1c;
 
-  /* the three shift types */
+  /* the two shift types */
   --day: #a15c07;     --day-soft: #fdf0d8;
   --night: #4f46e5;   --night-soft: #e9e8fd;
-  --double: var(--accent); --double-soft: var(--accent-soft);
   --party: #b4235f;   --party-soft: #fde6ef;
-  /* the same three, tuned for drawn marks (bars, dots): checked for colour-blind separation and contrast on the panel */
-  --mk-day: #a15c07;  --mk-night: #4f46e5;  --mk-double: #008f80;
+  /* the same two, tuned for drawn marks (bars, dots): checked for colour-blind separation and contrast on the panel */
+  --mk-day: #a15c07;  --mk-night: #4f46e5;
 
   --shadow-panel: 0 1px 2px rgb(15 31 30 / .05), 0 4px 16px rgb(15 31 30 / .04);
   --shadow-raised: 0 24px 60px rgb(10 25 24 / .28), 0 4px 12px rgb(10 25 24 / .12);
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+
+  /* the two-tier rail: a dark chrome that stays constant across the light/dark page theme, the way
+     chrome does - a narrow tier that picks a group (Shift, Employees, Lists), a wider one listing
+     that group's pages. */
+  --rail-bg: #0a1817; --rail-ink: #93aaa5; --rail-ink-hi: #ffffff;
+  --rail1: 80px; --rail2: 212px; --rail: calc(var(--rail1) + var(--rail2));
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -78,7 +83,7 @@
     --day: #f5b94a;     --day-soft: #33270d;
     --night: #a5a1ff;   --night-soft: #23214d;
     --party: #f58bb3;   --party-soft: #3a1727;
-    --mk-day: #b87a20;  --mk-night: #7570e6;  --mk-double: #1a9c8c;
+    --mk-day: #b87a20;  --mk-night: #7570e6;
 
     --shadow-panel: 0 0 0 rgb(0 0 0 / 0);
     --shadow-raised: 0 24px 60px rgb(0 0 0 / .6);
@@ -96,20 +101,42 @@ button { cursor: pointer; }
 .muted { color: var(--muted); font-size: var(--fs-small); }
 
 /* ---- layout ------------------------------------------------------------------------------ */
-.wrap { max-width: 1560px; margin: 0 auto; padding: var(--sp-5) var(--sp-4) var(--sp-7); }
-.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); margin-bottom: var(--sp-5); }
-.brand { font-size: var(--fs-title); line-height: 1.2; font-weight: 700; letter-spacing: -.01em; }
-.brand span { color: var(--accent); }
-/* the view switch: Shifts | Employees */
-.views { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--panel); }
-.views button { min-height: 30px; padding: 0 var(--sp-4); border: 0; border-radius: var(--radius-pill); background: none; color: var(--muted); font-weight: 500; transition: background-color .12s, color .12s; }
-.views button:hover { color: var(--ink); background: var(--hover); }
-.views button[aria-current="page"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+/* the shell: a sticky, full-height rail (two tiers) beside the scrolling main column */
+.shell { display: grid; grid-template-columns: var(--rail) 1fr; min-height: 100vh; }
+.rail { background: var(--panel); display: flex; position: sticky; top: 0; height: 100vh; }
+/* rail1 picks a GROUP and never changes width; rail2 lists that group's pages. A solo group
+   (Employees: one page, master-detail already) has no second tier - the tile takes you straight there. */
+.rail1 { width: var(--rail1); flex: none; background: var(--rail-bg); display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); padding: var(--sp-4) var(--sp-2); overflow-y: auto; }
+.rail2 { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5); padding-block: var(--sp-4); padding-inline: var(--sp-3); overflow-y: auto; border-right: 1px solid var(--line); }
+.brandmark { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-bottom: var(--sp-3); line-height: 1; }
+.brandmark b { font-size: 19px; font-weight: 700; letter-spacing: .02em; color: var(--rail-ink-hi); }
+.brandmark span { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); }
+.gtile { all: unset; box-sizing: border-box; cursor: pointer; position: relative; width: 64px; aspect-ratio: 1; border-radius: var(--radius-m); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--rail-ink); font-size: 10px; font-weight: 500; letter-spacing: .02em; text-align: center; overflow-wrap: break-word; transition: background-color .12s, color .12s; }
+.gtile svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.gtile:hover { background: rgb(255 255 255 / .08); color: var(--rail-ink-hi); }
+.gtile[aria-current="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 4px 12px rgb(0 0 0 / .35); }
+.gtile:focus-visible { outline: 2px solid var(--rail-ink-hi); outline-offset: 2px; }
+.rail2-title { margin: 0 0 6px; padding-inline: var(--sp-2); }
+#nav { display: flex; flex-direction: column; gap: var(--sp-5); }
+.navsec { display: flex; flex-direction: column; gap: 2px; }
+.navsec .rail2-title { margin: 0 0 4px; }
+.shell.solo { grid-template-columns: var(--rail1) 1fr; }
+.shell.solo .rail2 { display: none; }
+#nav button { all: unset; cursor: pointer; padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-s); font-size: 13px; font-weight: 500; color: var(--muted); position: relative; }
+#nav button:hover { background: var(--hover); color: var(--ink); }
+#nav button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+#nav button[aria-current="true"]::before { content: ''; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+#nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+.page { flex: 1; display: grid; align-content: start; gap: var(--sp-4); width: 100%; max-width: 1400px; margin: 0 auto; padding: var(--sp-5) var(--sp-5) var(--sp-7); min-width: 0; }
+.page > * { min-width: 0; }
 .status { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--muted); font-size: var(--fs-small); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .status.live .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
 .status.down .dot { background: var(--bad); }
-.counts { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); margin-left: auto; }
+.counts { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); }
 .count { padding: 2px var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: var(--fs-small); color: var(--muted); }
 .count b { margin-left: var(--sp-1); color: var(--ink); font-weight: 600; }
 
@@ -148,17 +175,17 @@ button { cursor: pointer; }
 .pills { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .pills:empty { display: none; }
 
-/* fields: inputs are styled by element inside the token bar, the employees workspace and the shifts workbench, at zero specificity, so any
+/* fields: inputs are styled by element inside the token bar, the employees workspace and the modal, at zero specificity, so any
    component class below overrides them without a fight */
-:where(.auth, .workspace, .workbench, .modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+:where(.auth, .workspace, .modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
   width: 100%; min-height: var(--field-h); padding: var(--sp-2) var(--sp-3);
   background: var(--field); border: 1px solid var(--line-strong); border-radius: var(--radius-s);
   color: var(--ink); font-size: var(--fs-body);
 }
-:where(.auth, .workspace, .workbench, .modal) textarea { min-height: 84px; resize: vertical; }
-:where(.auth, .workspace, .workbench, .modal) :is(input, select, textarea)::placeholder { color: var(--muted); opacity: .8; }
-:where(.auth, .workspace, .workbench, .modal) :is(input, select, textarea):focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
-:where(.auth, .workspace, .workbench, .modal) [aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+:where(.auth, .workspace, .modal) textarea { min-height: 84px; resize: vertical; }
+:where(.auth, .workspace, .modal) :is(input, select, textarea)::placeholder { color: var(--muted); opacity: .8; }
+:where(.auth, .workspace, .modal) :is(input, select, textarea):focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+:where(.auth, .workspace, .modal) [aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
 .field { display: grid; gap: var(--sp-1); font-size: var(--fs-small); font-weight: 500; color: var(--muted); }
 
 /* segmented choice (shift type, list tabs): real radios, visually hidden */
@@ -204,7 +231,6 @@ tr.deleted .day { text-decoration: line-through; }
 .badge { display: inline-block; padding: 0 var(--sp-2); border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; line-height: 1.6; letter-spacing: .05em; text-transform: uppercase; }
 .badge-day { background: var(--day-soft); color: var(--day); }
 .badge-night { background: var(--night-soft); color: var(--night); }
-.badge-double { background: var(--double-soft); color: var(--double); }
 .badge-party { background: var(--party-soft); color: var(--party); }
 tr.shift:has(+ tr.detail) td { border-bottom: 0; }
 tr.detail td { padding: var(--sp-2) var(--sp-4) var(--sp-4); background: var(--field); }
@@ -248,21 +274,14 @@ ol.feed li.old { opacity: .6; }
 .op-created { color: var(--good); } .op-updated { color: var(--accent); }
 .op-deleted, .op-purged { color: var(--bad); } .op-archived, .op-external { color: var(--warn); }
 
-/* ---- the shifts workbench: tabbed navigation on the left, the selected group's input on the right ---- */
+/* ---- shift pages: each pane fills the width the rail leaves it ---------------------------- */
 .spacer { flex: 1; }
-.workbench { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
-.panes { display: grid; gap: var(--sp-4); min-width: 0; }
-.panes > * { min-width: 0; }
 .pane-body { padding: 0 var(--sp-5) var(--sp-2); }
 .pane-body.flush { padding: 0; }
 .pane-body > .fsec { max-width: 760px; }
-.leftnav { padding-bottom: 0; }
-.navhead { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4) var(--sp-2); }
-.navhead .btn { min-height: 34px; padding: 0 var(--sp-3); }
-.navhead h2 { font-size: var(--fs-heading); line-height: 1.3; font-weight: 600; }
 .navlabel { padding: var(--sp-3) var(--sp-4) 0; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
-/* the tabs: a group's name, and under it a live line saying what is in it */
+/* the shift form's stepper reuses this tab styling (its own two-tier nav, inside the dialog) */
 .tablist { display: grid; gap: 2px; padding: var(--sp-1) var(--sp-2); }
 .tablist button { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 0 var(--sp-3); min-height: 34px; padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); border: 0; border-radius: var(--radius-s); background: none; color: var(--ink); text-align: left; transition: background-color .12s; }
 .tablist button:hover { background: var(--hover); }
@@ -290,15 +309,12 @@ ol.feed li.old { opacity: .6; }
 .timepair .to { padding-bottom: var(--sp-3); color: var(--muted); }
 .subsec { display: grid; gap: var(--sp-2); padding-top: var(--sp-1); }
 
-/* tips and other-income rows. t = tips (no type to pick), o = other income (type first); 1 = one shift half,
-   2 = a double (which half comes before the amount). Each row ends with a remove. */
+/* tips and other-income rows. t = tips (no type to pick), o = other income (type first). Each row ends with a remove. */
 .rows { display: grid; gap: var(--sp-2); }
 .rows:empty { display: none; }
 .mrow { display: grid; align-items: center; gap: var(--sp-2); }
 .mrow.t1 { grid-template-columns: minmax(0, 1fr) auto; }
-.mrow.t2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 .mrow.o1 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; }
-.mrow.o2 { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 120px auto; }
 .mrow input[inputmode] { text-align: right; font-variant-numeric: tabular-nums; }
 .mrow .x { padding: var(--sp-2); font-size: var(--fs-body); text-decoration: none; }
 
@@ -313,17 +329,33 @@ ol.feed li.old { opacity: .6; }
 .addrow-employee input:nth-child(1) { flex: 1.2; }
 .addrow-employee input:nth-child(2) { flex: 1; }
 
-/* the roster: a group row per role (with its totals), then a row per person */
+/* the roster: a flat table, one row per person, sortable by clicking a header */
 table.roster { min-width: 440px; }
-table.roster tr.group th { padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); border-bottom: 1px solid var(--line); background: var(--field); color: var(--ink); font-size: var(--fs-small); font-weight: 600; letter-spacing: 0; text-transform: none; white-space: nowrap; }
-table.roster tr.group td { background: var(--field); border-bottom: 1px solid var(--line); font-size: var(--fs-small); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.colsort { padding: 0; border: 0; background: none; font: inherit; font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.colsort:hover, .colsort.sorted { color: var(--ink); }
+th[aria-sort="ascending"] .colsort::after { content: ' ▲'; }
+th[aria-sort="descending"] .colsort::after { content: ' ▼'; }
 tr.person { cursor: pointer; transition: background-color .12s; }
 tr.person:hover { background: var(--hover); }
 tr.person.selected { background: var(--accent-soft); }
 tr.person.selected td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 tr.person td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.roles-cell { max-width: 220px; overflow: hidden; color: var(--muted); font-size: var(--fs-small); text-overflow: ellipsis; white-space: nowrap; }
 .rowbtn { padding: var(--sp-1) 0; border: 0; background: none; color: var(--ink); font-weight: 600; text-align: left; }
 .rowbtn:hover { color: var(--accent); }
+.badge-me, .badge-mgr { margin-left: var(--sp-1); }
+.badge-me { background: var(--accent-soft); color: var(--accent); }
+.badge-mgr { background: var(--day-soft); color: var(--day); }
+
+/* the profile form's roles field: existing roles as removable chips, then a plain text input that adds one */
+.namepair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.chipfield { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); min-height: var(--field-h); padding: 6px var(--sp-2); background: var(--field); border: 1px solid var(--line-strong); border-radius: var(--radius-s); }
+.chipfield:focus-within { border-color: var(--accent); box-shadow: var(--ring); }
+.chipfield input { flex: 1 1 80px; min-width: 80px; padding: var(--sp-1) var(--sp-2); border: 0; background: none; }
+.chipfield input:focus-visible { outline: none; }
+.chip { display: inline-flex; align-items: center; gap: var(--sp-1); padding: 2px var(--sp-1) 2px var(--sp-3); border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--accent); font-size: var(--fs-small); font-weight: 600; white-space: nowrap; }
+.chipx { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font-size: 14px; line-height: 1; }
+.chipx:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 
 /* the side panel: tier one is a form, tier two is a read-out drawn as a result (tinted), like the estimated wage */
 .side .panel-head h2 { overflow-wrap: anywhere; }
@@ -369,8 +401,7 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
 /* ---- shift colours: one --k per type, used by badges, chips, dots, bars and cards alike ------------------------- */
 .k-day { --k: var(--mk-day); --k-soft: var(--day-soft); }
 .k-night { --k: var(--mk-night); --k-soft: var(--night-soft); }
-.k-double { --k: var(--mk-double); --k-soft: var(--double-soft); }
-.k-acc, .hrs { --k: var(--accent); --k-soft: var(--accent-soft); }
+.k-acc, .hrs, .k-none { --k: var(--accent); --k-soft: var(--accent-soft); }
 /* income mix: one hue in three steps, told apart by their labels, not by colour alone */
 .inc-tips { --k: var(--accent); }
 .inc-wage { --k: color-mix(in srgb, var(--accent) 58%, var(--panel)); }
@@ -546,8 +577,8 @@ ul.lrows { display: grid; gap: var(--sp-2); max-height: 42vh; margin: 0; padding
 .chip b { color: var(--k); font-size: 11px; }
 .chip .ca { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* ---- the Type page: three cards, each with what that type has paid you ---------------------------------------- */
-.seg.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); overflow: visible; border: 0; background: none; }
+/* ---- the Type page: two cards, each with what that type has paid you ---------------------------------------- */
+.seg.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); overflow: visible; border: 0; background: none; }
 .seg.cards[aria-invalid="true"] { border-radius: var(--radius-m); }
 .seg.cards label, .seg.cards label + label { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; min-height: 92px; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line-strong); border-left: 4px solid var(--k); border-radius: var(--radius-m); background: var(--field); }
 .seg.cards label b { font-size: var(--fs-heading); font-weight: 600; }
@@ -587,17 +618,44 @@ body:has(dialog[open]) { overflow: hidden; }
 .dlgfoot .btn { min-width: 84px; }
 .dlgfoot .btn-primary { min-width: 120px; }
 
+/* ---- the shift preview drawer: a quick read-only look, sliding in over the shifts view; Edit hands off to the dialog --- */
+.drawer-backdrop { position: fixed; inset: 0; z-index: 40; background: rgb(10 25 24 / .4); }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; display: flex; flex-direction: column;
+  width: min(420px, 100vw); background: var(--panel); border-left: 1px solid var(--line-strong); box-shadow: var(--shadow-raised);
+  transform: translateX(100%); transition: transform .18s ease;
+}
+.drawer.open { transform: translateX(0); }
+.drawer-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--line); }
+.drawer-head h2 { font-size: var(--fs-heading); overflow-wrap: anywhere; }
+.drawer-body { flex: 1 1 auto; overflow-y: auto; padding: var(--sp-4) var(--sp-5); }
+.drawer-body pre { overflow-x: auto; padding: var(--sp-3); background: var(--field); border-radius: var(--radius-s); font-size: var(--fs-small); }
+.drawer-foot { display: flex; flex: none; gap: var(--sp-2); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--line); }
+
 /* ---- small screens ----------------------------------------------------------------------- */
 @media (min-width: 1101px) {
-  #shiftsView .leftnav { position: sticky; top: var(--sp-4); max-height: calc(100dvh - 104px); overflow-y: auto; }   /* stays in view while a long table scrolls */
   #employeesPage .side { position: sticky; top: var(--sp-4); max-height: calc(100dvh - var(--sp-5)); overflow-y: auto; }   /* stays in view beside a long roster */
 }
 @media (max-width: 1100px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }
 }
+/* below this, the rail can no longer sit beside the page: it becomes two stacked rows across the top */
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; flex-direction: column; border-bottom: 1px solid var(--line); }
+  .rail1 { width: auto; flex-direction: row; justify-content: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); overflow-x: auto; overflow-y: hidden; }
+  .brandmark, .rail2-title { display: none; }
+  #nav button[aria-current="true"]::before { display: none; }
+  .rail2 { flex-direction: row; align-items: center; gap: var(--sp-4); padding-block: var(--sp-2); padding-inline: var(--sp-3); overflow-x: auto; overflow-y: hidden; border-right: 0; }
+  #nav { flex-direction: row; gap: var(--sp-1); }
+  .navsec { flex-direction: row; gap: var(--sp-1); }
+  .shell.solo { grid-template-columns: minmax(0, 1fr); }
+  #nav button { white-space: nowrap; }
+}
 @media (max-width: 720px) {
-  .wrap { padding: var(--sp-4) var(--sp-3) var(--sp-6); }
-  .counts { flex-wrap: nowrap; width: 100%; margin-left: 0; padding-bottom: var(--sp-1); overflow-x: auto; }   /* one scrolling row instead of three */
+  .page { padding: var(--sp-4) var(--sp-3) var(--sp-6); }
+  .topbar { padding: var(--sp-3) var(--sp-3); }
+  .counts { flex-wrap: nowrap; width: 100%; padding-bottom: var(--sp-1); overflow-x: auto; }   /* one scrolling row instead of three */
   .count { flex: 0 0 auto; }
   .panel-head { padding: var(--sp-3) var(--sp-4); }
   .toolbar { flex-wrap: nowrap; width: 100%; gap: var(--sp-2); }
@@ -617,9 +675,6 @@ body:has(dialog[open]) { overflow: hidden; }
   .toolbar .btn { flex: 1; }
   .hide-sm { display: none; }
   .tier { padding: var(--sp-4); }
-  /* the left panel becomes a row of tabs across the top; Save and Cancel become a bar along the bottom */
-  .workbench { grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
-  .navhead { padding: var(--sp-3) var(--sp-4) 0; }
   /* the dialog fills the screen; its pages become a row of tabs across the top, and Back / Next / Save stay in the bar below */
   .modal { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
   .dlghead { padding: var(--sp-3) var(--sp-4); }
@@ -645,7 +700,7 @@ body:has(dialog[open]) { overflow: hidden; }
   ol.feed li { padding: var(--sp-3) var(--sp-4); }
 
   /* inputs are 16px so phones don't zoom */
-  :where(.auth, .workspace, .workbench, .modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: 16px; }
+  :where(.auth, .workspace, .modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: 16px; }
   .banner, .errors { margin: var(--sp-3) var(--sp-4) 0; }
   .pill { min-height: 40px; padding: 0 var(--sp-4); font-size: var(--fs-body); }
   .seg label { min-height: 46px; }
@@ -672,8 +727,6 @@ body:has(dialog[open]) { overflow: hidden; }
   .mrow { padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--field); }   /* each entry is one card */
   .mrow :is(select, input) { background: var(--panel); }
   .mrow.o1 { grid-template-columns: minmax(0, 1fr) 110px auto; }          /* type, amount, remove on one line */
-  .mrow.o2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } /* a double: the type gets a row, then half, amount, remove */
-  .mrow.o2 > :first-child { grid-column: 1 / -1; }
   .seg.tabs label { padding: 0 6px; }
   .wrow input[type="date"] { flex-basis: 130px; }
 }
