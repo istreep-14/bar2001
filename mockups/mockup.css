@@ -1,0 +1,109 @@
+/* Review chrome for the mockups: the sheet the blocks sit on, each block's frame, and the notes beside it.
+   None of this ships. The app's own look comes from dashboard/styles.css, which every mockup links first;
+   the CSS a proposed block would *add* to that file is kept apart, in shift-log/proposed.css.
+
+   dashboard/styles.css asks for /fonts/poppins-*.woff2, a path only the running app serves, so Poppins is
+   declared again here by a relative path that also resolves from a plain static server rooted at the repo.
+   Opened straight off disk (file://) a browser refuses to load fonts at all; the mockup then falls back to
+   the system stack, which is the one way it does not match the real page. Serve the repo over http to see it
+   as it is (see mockups/README.md). */
+@font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../dashboard/fonts/poppins-400.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../dashboard/fonts/poppins-500.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../dashboard/fonts/poppins-600.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../dashboard/fonts/poppins-700.woff2") format("woff2"); }
+
+/* The dark tokens of dashboard/styles.css, which are behind a prefers-color-scheme media query there, put
+   behind a switch as well, so a block can be checked in both themes without changing the OS setting. Tokens
+   are set on <body>, not :root, so they override the ones the stylesheet puts on :root for everything inside. */
+body[data-theme="dark"] {
+  --bg: #0b1110;
+  --panel: #131b1a;
+  --field: #0e1514;
+  --hover: #18242a;
+  --line: #243230;
+  --line-strong: #34463f;
+  --ink: #e8f0ee;
+  --muted: #93a6a2;
+  --accent: #4fd6c4;
+  --accent-ink: #062622;
+  --accent-soft: #143530;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --day: #f5b94a;     --day-soft: #33270d;
+  --night: #a5a1ff;   --night-soft: #23214d;
+  --party: #f58bb3;   --party-soft: #3a1727;
+  --mk-day: #b87a20;  --mk-night: #7570e6;
+  --shadow-panel: 0 0 0 rgb(0 0 0 / 0);
+  --shadow-raised: 0 24px 60px rgb(0 0 0 / .6);
+  background: var(--bg);
+  color: var(--ink);
+}
+body[data-theme="light"] { background: var(--bg); color: var(--ink); }
+
+/* ---- the sheet ----------------------------------------------------------------------------- */
+.sheet { max-width: 1120px; margin: 0 auto; padding: var(--sp-6) var(--sp-5) var(--sp-7); }
+.sheet-head { display: grid; gap: var(--sp-3); padding-bottom: var(--sp-5); border-bottom: 1px solid var(--line); }
+.eyebrow { font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.sheet-head h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.lede { max-width: 72ch; font-size: var(--fs-body); color: var(--muted); }
+.lede b { color: var(--ink); font-weight: 600; }
+.sheet-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.sheet-tools .spacer { flex: 1; }
+.sheet nav.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-1) var(--sp-4); margin: 0; padding: var(--sp-4) 0 0; list-style: none; }
+.sheet nav.toc a { display: grid; grid-template-columns: 2.4em minmax(0, 1fr); gap: var(--sp-2); padding: 3px 0; color: var(--ink); font-size: 13px; text-decoration: none; }
+.sheet nav.toc a:hover { color: var(--accent); }
+.sheet nav.toc a i { font-style: normal; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---- one block: a heading, the notes, then the mockup itself in a frame --------------------- */
+.blocks { display: grid; gap: var(--sp-7); padding-top: var(--sp-6); }
+.block { display: grid; gap: var(--sp-4); scroll-margin-top: var(--sp-4); }
+.block-head { display: grid; gap: var(--sp-2); }
+.block-head h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-3); font-size: var(--fs-title); font-weight: 600; letter-spacing: -.01em; }
+.block-head h2 i { font-style: normal; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.flag { padding: 2px var(--sp-2); border-radius: var(--radius-pill); font-size: var(--fs-eyebrow); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.flag.opt { background: var(--day-soft); color: var(--day); }
+.flag.core { background: var(--accent-soft); color: var(--accent); }
+.notes { display: grid; gap: 6px; margin: 0; }
+.notes > div { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--sp-3); font-size: var(--fs-small); line-height: 1.5; }
+.notes dt { font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding-top: 1px; }
+.notes dd { margin: 0; min-width: 0; color: var(--ink); }
+.notes code { padding: 1px 4px; border-radius: 4px; background: var(--field); font: 12px/1.4 var(--mono); }
+
+.frame { display: grid; gap: var(--sp-3); padding: var(--sp-4); border: 1px dashed var(--line-strong); border-radius: var(--radius-l); background: color-mix(in srgb, var(--panel) 40%, var(--bg)); }
+.frame + .frame { margin-top: calc(var(--sp-2) * -1); }
+.frame-cap { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.frame-cap span { font-size: var(--fs-small); font-weight: 400; letter-spacing: 0; text-transform: none; }
+/* the shift log's own panel is capped at 900 px in the app (#paneShifts); keep the mockups honest about that */
+.frame .panel { max-width: 900px; }
+.frame.full .panel { max-width: none; }
+.stage { display: grid; gap: var(--sp-3); }
+.stage.pair { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+
+/* the assembled mockup wears the app's own chrome, so it gets a bar across the top saying what it is */
+.mockbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: 7px var(--sp-4); background: var(--ink); color: var(--bg); font-size: var(--fs-small); }
+.mockbar b { font-weight: 600; }
+.mockbar a { color: inherit; text-underline-offset: 3px; }
+.mockbar .spacer { flex: 1; }
+.mockbar .pill { min-height: 26px; padding: 0 var(--sp-2); border-color: color-mix(in srgb, var(--bg) 35%, transparent); background: none; color: inherit; font-size: var(--fs-small); }
+.mockbar .pill:hover { background: color-mix(in srgb, var(--bg) 16%, transparent); border-color: color-mix(in srgb, var(--bg) 60%, transparent); }
+.mockbar .pill[aria-pressed="true"] { background: var(--bg); border-color: var(--bg); color: var(--ink); }
+.mockbar .pill[aria-pressed="true"]::after { content: none; }
+
+/* the icon sprite the mockups draw from (the app builds the same paths with createElementNS) */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* a short scroller, so a sticky header can be seen sticking without a page-tall mockup */
+.scrollbox { overflow: auto; max-height: 300px; }
+
+/* a pointer from the mockup to the thing being pointed at */
+.annot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-2); align-items: baseline; font-size: var(--fs-small); color: var(--muted); }
+.annot b { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: var(--radius-pill); background: var(--ink); color: var(--bg); font-size: 10px; font-weight: 700; }
+.annots { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.callout { padding: var(--sp-3) var(--sp-4); border-left: 3px solid var(--warn); border-radius: 0 var(--radius-s) var(--radius-s) 0; background: color-mix(in srgb, var(--warn) 10%, transparent); font-size: var(--fs-small); }
+.callout b { font-weight: 600; }
+
+@media (max-width: 720px) {
+  .sheet { padding: var(--sp-4) var(--sp-3) var(--sp-6); }
+  .notes > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .frame { padding: var(--sp-2); }
+}

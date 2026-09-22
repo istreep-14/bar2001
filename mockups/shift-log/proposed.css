@@ -1,0 +1,158 @@
+/* The CSS the proposed Shift log blocks would add to dashboard/styles.css, kept apart so the mockups show
+   exactly what is new. Everything here uses the tokens at the top of that file and nothing else; wherever a
+   block can be built out of a component the app already has (.panel, .tiles/.tile, .seg.tabs, .pill, .btn,
+   .icon-btn, .colsort, .mixbar, .ratechip, .empty) it reuses it and adds nothing.
+
+   Order: the filter bar, the totals strip, sorting and density, group headings, row states, the nudge,
+   the table's foot, empty and loading states, and (optional) picking several rows at once. */
+
+/* ---- 1. the filter bar: one row under the panel head, wrapping to two on a narrow screen ----------------- */
+.logbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); background: var(--panel); }
+.fgroup { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.fgroup > .flabel { flex: none; }
+.flabel { font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.logbar .seg.tabs label { min-height: 32px; padding: 0 var(--sp-3); font-size: 13px; }
+.logbar select, .logbar .fsearch input { min-height: 32px; padding: var(--sp-1) var(--sp-3); background: var(--field); border: 1px solid var(--line-strong); border-radius: var(--radius-s); color: var(--ink); font-size: 13px; }
+.logbar select { max-width: 160px; }
+.logbar .spacer { flex: 1 1 var(--sp-2); }
+/* the search box: the icon sits inside the field, so the row keeps one height throughout */
+.fsearch { position: relative; display: flex; align-items: center; min-width: 0; }
+.fsearch svg { position: absolute; left: var(--sp-2); width: 15px; height: 15px; color: var(--muted); pointer-events: none; }
+.fsearch input { width: 172px; padding-left: calc(var(--sp-2) + 15px + 6px); }
+.fsearch input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.fgroup .pill { min-height: 32px; }
+
+/* what is being filtered right now, as chips that each take themselves off - so a filter can never be on
+   without the page saying so (the row disappears entirely when nothing is filtered) */
+.fchips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-5) var(--sp-3); border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-small); }
+.fchips:empty { display: none; }
+.fchips .fcount { margin-right: var(--sp-1); color: var(--muted); }
+.fchips .fcount b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.fchip { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 26px; padding: 0 var(--sp-1) 0 var(--sp-3); border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--field); color: var(--ink); font-size: var(--fs-small); }
+.fchip b { font-weight: 600; }
+.fchip .chipx { color: var(--muted); }
+.fchip:hover { border-color: var(--accent); }
+.fchip:hover .chipx { color: var(--accent); }
+
+/* ---- 2. the totals strip: what the rows on screen come to, in the app's own tiles ------------------------ */
+.logsum { padding: var(--sp-3) var(--sp-5) var(--sp-4); border-bottom: 1px solid var(--line); background: var(--panel); }
+.logsum .tiles { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+.logsum .tile { padding: var(--sp-2) var(--sp-3); }
+.logsum .tile dd { font-size: 19px; }
+.logsum .tile.lead dd { font-size: 24px; }
+/* a figure's move against the range before it: the same green/amber the rest of the app uses, an arrow first
+   so colour is never the only thing saying which way it went */
+.trend { display: inline-flex; align-items: center; gap: 3px; font-size: var(--fs-small); font-weight: 600; font-variant-numeric: tabular-nums; }
+.trend.up { color: var(--good); }
+.trend.down { color: var(--warn); }
+.trend.flat { color: var(--muted); }
+
+/* ---- 3. sorting and density ----------------------------------------------------------------------------- */
+/* the header buttons and the ▲▼ marks are the roster's (.colsort, th[aria-sort]); only the right-aligned
+   columns need anything, so the button fills the cell and keeps the figure's edge */
+table.shifts th .colsort { max-width: 100%; }
+table.shifts th.num .colsort { width: 100%; text-align: right; }
+/* sorting by a figure cuts across the months, so the month headings step aside for one line saying what the
+   order is and offering the way back */
+.sortnote { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2) var(--sp-5); border-bottom: 1px solid var(--line); background: var(--field); font-size: var(--fs-small); color: var(--muted); }
+.sortnote b { color: var(--ink); font-weight: 600; }
+/* two densities over the same markup: 'compact' is for reading a long stretch of shifts, 'roomy' for a phone
+   or a tap target. The default (neither class) is the row the table has today. */
+table.shifts.compact td { padding: 2px 6px; }
+table.shifts.compact .ratechip { padding: 0 4px; }
+table.shifts.compact tr.group th { padding-top: var(--sp-3); }
+table.shifts.roomy td { padding: 9px 6px; }
+
+/* ---- 4. group headings: sticky under the column header, collapsible, with the group's shape -------------- */
+/* tr.group replaces tr.month (a group is a month or a week now). The head sticks below the column header as
+   its own shifts scroll past, so a figure is never read without knowing which month it is in: the column
+   header is sticky at top 0 and 29 px tall at this type size, hence the offset. */
+tr.group th { position: sticky; top: 29px; z-index: 1; padding: var(--sp-3) var(--sp-4) var(--sp-2); border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-body); letter-spacing: 0; text-transform: none; white-space: normal; color: var(--muted); box-shadow: 0 1px 0 var(--line); }
+tbody tr.group:first-child th { padding-top: var(--sp-3); }
+.ghdr { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-3); }
+.ghdr .gname { font-size: var(--fs-heading); font-weight: 600; color: var(--ink); }
+.ghdr .gsum { font-size: var(--fs-small); font-weight: 400; font-variant-numeric: tabular-nums; }
+.ghdr .spacer { flex: 1 1 var(--sp-2); }
+/* the month's income mix at a glance, the same three steps of one hue the Overview uses, and the same widths:
+   tips, then the estimated wage, then other income */
+.gmix { display: flex; flex: none; gap: 2px; width: 84px; height: 8px; }
+.gmix i { min-width: 3px; background: var(--k); border-radius: 2px; }
+.gdelta { flex: none; }
+/* collapsing a month: the chevron is the same .icon-btn the rows use, rotated the same way */
+.gtoggle { flex: none; }
+.gtoggle svg { transition: transform .12s; }
+tr.group.closed .gtoggle svg { transform: rotate(-90deg); }
+tr.group.closed th { color: var(--muted); }
+.ghidden { font-size: var(--fs-small); color: var(--muted); }
+
+/* ---- 5. row states ------------------------------------------------------------------------------------- */
+/* a shift the form let you leave half-filled (no times, or nothing earned) is marked, never faulted: saving
+   as little as you know is the point (invariant 4). One amber dot after the date, the reason on hover. */
+.flagdot { display: inline-block; flex: none; width: 6px; height: 6px; margin-left: 2px; border-radius: 50%; background: var(--warn); }
+tr.shift.needs td.when .dm { text-decoration: underline dotted color-mix(in srgb, var(--warn) 70%, transparent); text-underline-offset: 3px; }
+/* a deleted row gets its own quiet Restore where the delete used to be, instead of opening the form to save it back */
+.icon-btn.restore:hover { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+tr.deleted td.when .dm { text-decoration: line-through; }
+
+/* ---- 6. the nudge: one line above the table when shifts are waiting to be finished --------------------- */
+.nudge { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--warn) 9%, var(--panel)); font-size: var(--fs-small); }
+.nudge > svg { flex: none; width: 17px; height: 17px; color: var(--warn); }
+.nudge p { min-width: 0; }
+.nudge b { font-weight: 600; }
+.nudge .spacer { flex: 1 1 var(--sp-2); }
+.nudge .btn { min-height: 30px; padding: 0 var(--sp-3); font-size: var(--fs-small); }
+
+/* ---- 7. the table's foot: what is loaded, how to get more, and the column legend on demand ------------- */
+.logfoot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2) var(--sp-4); border-top: 1px solid var(--line); font-size: var(--fs-small); color: var(--muted); }
+.logfoot .spacer { flex: 1 1 var(--sp-2); }
+.logfoot b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.logfoot .btn { min-height: 30px; padding: 0 var(--sp-3); font-size: var(--fs-small); }
+/* the note under the table is four sentences that never change: fold it away, but keep the one caveat that is
+   about the data on screen (a partial oldest month) out in the open, in .logfoot */
+.collegend { font-size: var(--fs-small); color: var(--muted); }
+.collegend summary { width: fit-content; color: var(--accent); cursor: pointer; }
+.collegend[open] summary { margin-bottom: var(--sp-2); }
+.collegend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px var(--sp-4); margin: 0; }
+.collegend dt { font-weight: 600; color: var(--ink); }
+.collegend dd { margin: 0; }
+
+/* ---- 8. empty and loading states ---------------------------------------------------------------------- */
+/* the page has one .empty line for everything today; the three cases it is actually in read differently */
+.empty-rich { display: grid; justify-items: center; gap: var(--sp-2); padding: var(--sp-7) var(--sp-5); text-align: center; }
+.empty-rich > svg { width: 30px; height: 30px; color: var(--muted); opacity: .7; }
+.empty-rich h3 { font-size: var(--fs-heading); font-weight: 600; }
+.empty-rich p { max-width: 46ch; color: var(--muted); font-size: var(--fs-small); }
+.empty-rich .acts { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); padding-top: var(--sp-1); }
+/* while the first snapshot is in flight: the table's own shape in grey, so the page doesn't jump when the rows land */
+.skel { display: grid; gap: 1px; padding: var(--sp-2) 0; }
+.skelrow { display: grid; grid-template-columns: 116px 1fr 1fr 1fr 1fr 1fr 74px; gap: var(--sp-3); align-items: center; padding: 8px var(--sp-4); }
+.skelrow i { height: 10px; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--field), var(--hover), var(--field)); background-size: 300% 100%; animation: skelwipe 1.5s linear infinite; }
+.skelrow i.short { width: 60%; }
+.skelrow i.mid { width: 80%; justify-self: end; }
+@keyframes skelwipe { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .skelrow i { animation: none; } }
+
+/* ---- 9. optional: picking several rows at once --------------------------------------------------------- */
+th.pickcol, td.pickcol { width: 1%; padding-right: 0; }
+.pickcol input { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); }
+tr.shift.picked { background: var(--accent-soft); }
+tr.shift.picked td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+/* the bar rides at the bottom of the table's own scroller, not the page, so it is never far from the rows it acts on */
+.bulkbar { position: sticky; bottom: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2) var(--sp-4); border-top: 1px solid var(--line-strong); background: var(--panel); box-shadow: 0 -4px 16px rgb(15 31 30 / .06); font-size: var(--fs-small); }
+.bulkbar b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.bulkbar .spacer { flex: 1 1 var(--sp-2); }
+.bulkbar .btn { min-height: 30px; padding: 0 var(--sp-3); font-size: var(--fs-small); }
+
+/* ---- small screens ------------------------------------------------------------------------------------ */
+@media (max-width: 720px) {
+  .logbar, .fchips, .logsum, .nudge { padding-inline: var(--sp-4); }
+  .logbar { gap: var(--sp-2); }
+  .logbar .fgroup { flex: 1 1 auto; }
+  .fsearch, .fsearch input { flex: 1 1 100%; width: auto; }
+  .logsum .tiles { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+  .logsum .tile dd { font-size: 17px; }
+  /* the date column is pinned as the table scrolls sideways, so the group heading has to stay with it */
+  .ghdr { position: sticky; left: var(--sp-4); }
+  .gmix { display: none; }
+  .skelrow { grid-template-columns: 96px 1fr 1fr 64px; }
+}
