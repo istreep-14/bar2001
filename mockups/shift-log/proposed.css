@@ -18,7 +18,7 @@
 /* the search box: the icon sits inside the field, so the row keeps one height throughout */
 .fsearch { position: relative; display: flex; align-items: center; min-width: 0; }
 .fsearch svg { position: absolute; left: var(--sp-2); width: 15px; height: 15px; color: var(--muted); pointer-events: none; }
-.fsearch input { width: 172px; padding-left: calc(var(--sp-2) + 15px + 6px); }
+.fsearch input { width: 196px; padding-left: calc(var(--sp-2) + 15px + 6px); }
 .fsearch input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
 .fgroup .pill { min-height: 32px; }
 
@@ -73,9 +73,11 @@ tbody tr.group:first-child th { padding-top: var(--sp-3); }
 .ghdr .gname { font-size: var(--fs-heading); font-weight: 600; color: var(--ink); }
 .ghdr .gsum { font-size: var(--fs-small); font-weight: 400; font-variant-numeric: tabular-nums; }
 .ghdr .spacer { flex: 1 1 var(--sp-2); }
-/* the month's income mix at a glance, the same three steps of one hue the Overview uses, and the same widths:
-   tips, then the estimated wage, then other income */
-.gmix { display: flex; flex: none; gap: 2px; width: 84px; height: 8px; }
+/* the month's income mix at a glance, in the same three steps of one hue the Overview's .mixbar uses: tips,
+   then the estimated wage, then other income. Each part's share is set on the element itself
+   (`i.style.flexGrow`), the way viz.js sizes every bar it draws - the CSSOM is allowed where a `style`
+   attribute in the markup would be refused by the CSP. */
+.gmix { display: flex; flex: none; gap: 2px; width: 110px; height: 8px; }
 .gmix i { min-width: 3px; background: var(--k); border-radius: 2px; }
 .gdelta { flex: none; }
 /* collapsing a month: the chevron is the same .icon-btn the rows use, rotated the same way */

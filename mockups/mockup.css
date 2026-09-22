@@ -88,7 +88,9 @@ body[data-theme="light"] { background: var(--bg); color: var(--ink); }
 .mockbar .pill { min-height: 26px; padding: 0 var(--sp-2); border-color: color-mix(in srgb, var(--bg) 35%, transparent); background: none; color: inherit; font-size: var(--fs-small); }
 .mockbar .pill:hover { background: color-mix(in srgb, var(--bg) 16%, transparent); border-color: color-mix(in srgb, var(--bg) 60%, transparent); }
 .mockbar .pill[aria-pressed="true"] { background: var(--bg); border-color: var(--bg); color: var(--ink); }
-.mockbar .pill[aria-pressed="true"]::after { content: none; }
+/* a pressed .pill in the app is a chosen name, so it wears a ✕ to take it off again; these two switches are a
+   choice of one, not a tag, so the ✕ comes off */
+.mockbar .pill[aria-pressed="true"]::after, #themePills .pill[aria-pressed="true"]::after { content: none; }
 
 /* the icon sprite the mockups draw from (the app builds the same paths with createElementNS) */
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }

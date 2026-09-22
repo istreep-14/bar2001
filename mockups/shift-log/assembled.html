@@ -95,10 +95,10 @@
               <label><input type="radio" name="agroup"> None</label>
             </div>
             <span class="flabel">Density</span>
-            <div class="pills" id="densityPills">
-              <button type="button" class="pill" data-density="compact" aria-pressed="false">Compact</button>
-              <button type="button" class="pill" data-density="" aria-pressed="true">Default</button>
-              <button type="button" class="pill" data-density="roomy" aria-pressed="false">Roomy</button>
+            <div class="seg tabs" role="radiogroup" aria-label="Row density" id="densitySeg">
+              <label><input type="radio" name="adensity" value="compact"> Compact</label>
+              <label><input type="radio" name="adensity" value="" checked> Default</label>
+              <label><input type="radio" name="adensity" value="roomy"> Roomy</label>
             </div>
             <button type="button" class="btn"><svg width="15" height="15"><use href="#i-download"></use></svg> Export</button>
           </div>
@@ -134,7 +134,7 @@
           </div>
           <label class="fsearch">
             <svg aria-hidden="true"><use href="#i-search"></use></svg>
-            <input type="search" placeholder="Notes, tags, crew, party" aria-label="Search shifts">
+            <input type="search" placeholder="Notes, tags, crew…" aria-label="Search shifts">
           </label>
           <span class="spacer"></span>
           <div class="fgroup">
@@ -157,7 +157,7 @@
             <div class="tile"><dt>Tips</dt><dd>$9,480</dd><span class="sub">$28.6/hr <span class="trend up">▲ 6%</span></span></div>
             <div class="tile"><dt>Wage</dt><dd>$5,462</dd><span class="sub">est. at $16.50/hr</span></div>
             <div class="tile"><dt>Other</dt><dd>$610</dd><span class="sub">Cash · Venmo</span></div>
-            <div class="tile lead"><dt>Total income</dt><dd>$15,552</dd><span class="sub">$47.0/hr <span class="trend up">▲ 12%</span> on the 90 days before</span></div>
+            <div class="tile lead"><dt>Total income</dt><dd>$15,552</dd><span class="sub" title="$47.00/hr, against $42.05/hr over the 90 days before">$47.0/hr · <span class="trend up">▲ 12%</span></span></div>
           </dl>
         </div>
 
@@ -194,7 +194,7 @@
                   <span class="gsum">6 shifts · 41h 30m · $1,767 tips · $2,610 total</span>
                   <span class="gdelta trend up" title="$2,610 against $2,314 in August">▲ 13%</span>
                   <span class="spacer"></span>
-                  <span class="gmix" title="Tips $1,767 · wage $685 · other $158" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
+                  <span class="gmix" data-tips="1767" data-wage="685" data-other="158" title="Tips $1,767 · wage $685 · other $158" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
                 </div>
               </th></tr>
 
@@ -315,7 +315,7 @@
                   <span class="gname">July</span>
                   <span class="gsum">13 shifts · 94h 45m · $3,486 tips · $5,190 total</span>
                   <span class="spacer"></span>
-                  <span class="gmix" title="Tips $3,486 · wage $1,563 · other $141" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
+                  <span class="gmix" data-tips="3486" data-wage="1563" data-other="141" title="Tips $3,486 · wage $1,563 · other $141" aria-hidden="true"><i class="inc-tips"></i><i class="inc-wage"></i><i class="inc-other"></i></span>
                 </div>
               </th></tr>
 
@@ -385,15 +385,18 @@ themePills.addEventListener('click', (ev) => {
   else delete document.body.dataset.theme;
 });
 
-const densityPills = document.getElementById('densityPills');
 const logTable = document.getElementById('logTable');
-densityPills.addEventListener('click', (ev) => {
-  const btn = ev.target.closest('button[data-density]');
-  if (!btn) return;
-  for (const b of densityPills.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === btn));
+document.getElementById('densitySeg').addEventListener('change', (ev) => {
   logTable.classList.remove('compact', 'roomy');
-  if (btn.dataset.density) logTable.classList.add(btn.dataset.density);
+  if (ev.target.value) logTable.classList.add(ev.target.value);
 });
+
+// The income mix in a group heading: each part's share set on the element, as viz.js does for every bar it
+// draws (the CSSOM is allowed where a style attribute in the markup would be refused by the CSP).
+for (const mix of document.querySelectorAll('.gmix')) {
+  const parts = [mix.dataset.tips, mix.dataset.wage, mix.dataset.other].map(Number);
+  [...mix.children].forEach((part, i) => { part.style.flexGrow = String(parts[i] || 0); });
+}
 </script>
 </body>
 </html>
